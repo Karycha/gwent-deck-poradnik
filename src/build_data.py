@@ -68,7 +68,7 @@ for d in DECKS:
     if total > limit: errors.append(f"{d['id']}: {total}/{limit} prowizji")
     if d["leader"] == "Enslave" and tactics < 12: errors.append(f"{d['id']}: tylko {tactics} Taktyk")
     print(f"{d['id']:8} {n} kart, {units} jedn., {total}/{limit} prow." + (f", Taktyki {tactics}" if d['leader']=='Enslave' else ""))
-    out_decks.append(dict(id=d["id"], f=d["f"], t=d["t"], name=d["name"], leader=lead["pl"], leaderEn=d["leader"],
+    out_decks.append(dict(id=d["id"], f=d["f"], t=d["t"], b=1 if d.get("budget") else 0, name=d["name"], leader=lead["pl"], leaderEn=d["leader"],
                           leaderAb=lead["ab"], limit=limit, prov=total, units=units, cards=lst,
                           plan=d["plan"], mull=d["mull"], rounds=d["rounds"]))
 

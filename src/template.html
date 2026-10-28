@@ -73,6 +73,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
 .fchip{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fc);border:1px solid var(--fc);padding:1px 7px;border-radius:4px}
 .tier{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted)}
 .tier.t1{background:var(--accent);color:var(--accent-ink)} .tier.t2{background:var(--accent-soft);color:var(--ink)}
+.tier.bud{background:var(--ok-soft);color:var(--ink);border:1px solid var(--ok)}
 .deck-meta{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.9rem;color:var(--muted)}
 .prog{grid-column:1 / -1;display:flex;align-items:center;gap:10px}
 .bar{flex:1;height:8px;background:var(--sunk);border-radius:999px;overflow:hidden}
@@ -208,6 +209,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Jak złożyć deck z tej apki</h2>
       <ol>
+        <li>Mało skrawków? Kliknij filtr <b>Budżetowe</b>: te decki są złożone z kart, które już masz, a w opisie każdego jest pierwszy upgrade do scraftowania.</li>
         <li>Wybierz deck z „Co grać teraz”. Najwyżej jest ten, który jest mocny i do którego masz najwięcej kart.</li>
         <li>W grze otwórz kreator, wybierz frakcję i <b>umiejętność przywódcy</b> podaną przy decku.</li>
         <li>Wrzuć karty z listy. Brakującą kartę zastąp tańszą o tej samej roli albo dociśnij skrawkami.</li>
@@ -288,7 +290,7 @@ function renderRecs(){
   const box=$("#recs");box.innerHTML="";
   ranked.forEach(({d,s},i)=>{
     const b=document.createElement("button");b.className="rec";b.style.setProperty("--fc",fcol(d.f));
-    b.innerHTML=`<span class="label">${i+1}. ${FAC[d.f].n} · ${TIER[d.t].l}</span><span class="rec-name"></span><span class="small muted mono">${s.have}/25 kart · ${s.scrap?fmt(s.scrap)+" skrawków":"komplet"}</span>`;
+    b.innerHTML=`<span class="label">${i+1}. ${FAC[d.f].n} · ${d.b?"Budżet":TIER[d.t].l}</span><span class="rec-name"></span><span class="small muted mono">${s.have}/25 kart · ${s.scrap?fmt(s.scrap)+" skrawków":"komplet"}</span>`;
     b.querySelector(".rec-name").textContent=d.name;
     b.onclick=()=>{ui.open.add(d.id);ui.dfac="ALL";go("decki");setTimeout(()=>document.getElementById("deck-"+d.id)?.scrollIntoView({behavior:"smooth",block:"start"}),40)};
     box.appendChild(b);
@@ -301,8 +303,8 @@ function facFilters(el,key,list){
   el.innerHTML="";
   list.forEach(f=>{
     const b=document.createElement("button");b.className="fbtn";b.setAttribute("aria-pressed",ui[key]===f);
-    if(f!=="ALL"){b.style.setProperty("--fc",fcol(f));b.innerHTML='<span class="sw"></span>'}
-    b.append(f==="ALL"?"Wszystkie":FAC[f].n);
+    if(f!=="ALL"&&f!=="BUD"){b.style.setProperty("--fc",fcol(f));b.innerHTML='<span class="sw"></span>'}
+    b.append(f==="ALL"?"Wszystkie":f==="BUD"?"Budżetowe":FAC[f].n);
     b.onclick=()=>{ui[key]=f;ui.limit=200;render()};
     el.appendChild(b);
   });
@@ -333,8 +335,8 @@ function cardRow(id,need){
 }
 
 function renderDecks(){
-  facFilters($("#deckFilters"),"dfac",["ALL","NG","MO","NR","ST","SK","SY"]);
-  let list=DATA.decks.filter(d=>ui.dfac==="ALL"||d.f===ui.dfac).map(d=>({d,s:deckStats(d)}));
+  facFilters($("#deckFilters"),"dfac",["ALL","BUD","NG","MO","NR","ST","SK","SY"]);
+  let list=DATA.decks.filter(d=>ui.dfac==="ALL"||(ui.dfac==="BUD"?d.b:d.f===ui.dfac)).map(d=>({d,s:deckStats(d)}));
   if(ui.sort==="rec")list.sort((a,b)=>b.s.score-a.s.score||a.d.t-b.d.t);
   if(ui.sort==="tier")list.sort((a,b)=>a.d.t-b.d.t||b.s.pct-a.s.pct);
   if(ui.sort==="scrap")list.sort((a,b)=>a.s.scrap-b.s.scrap||a.d.t-b.d.t);
@@ -342,7 +344,7 @@ function renderDecks(){
   list.forEach(({d,s})=>{
     const art=document.createElement("article");art.className="deck"+(ui.open.has(d.id)?" open":"");art.id="deck-"+d.id;art.style.setProperty("--fc",fcol(d.f));
     const head=document.createElement("button");head.className="deck-head";head.setAttribute("aria-expanded",ui.open.has(d.id));
-    head.innerHTML=`<div class="deck-title"><span class="fchip">${FAC[d.f].n}</span><h3></h3><span class="tier t${d.t}">${TIER[d.t].l}</span></div>
+    head.innerHTML=`<div class="deck-title"><span class="fchip">${FAC[d.f].n}</span><h3></h3><span class="tier t${d.t}">${TIER[d.t].l}</span>${d.b?'<span class="tier bud">Budżet</span>':""}</div>
       <span class="chev" aria-hidden="true">›</span>
       <div class="deck-meta"><span>Przywódca: <b class="ld"></b></span><span class="mono">${d.prov}/${d.limit} prowizji</span></div>
       <div class="prog"><div class="bar"><i style="width:${Math.round(s.pct*100)}%"></i></div><span class="score">${s.have}/25${s.scrap?" · "+fmt(s.scrap)+" skr.":" · komplet"}</span></div>`;
