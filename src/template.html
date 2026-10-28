@@ -144,6 +144,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
       <h2 id="rech">Co grać teraz</h2>
       <span class="small muted mono" id="ownedSum"></span>
     </div>
+    <div class="updbar" id="emptybar" hidden><span>Kolekcja jest pusta, więc wszystko pokazuje 0/25.</span><button class="btn" id="emptyBtn">Wczytaj kolekcję</button></div>
     <div class="recgrid" id="recs"></div>
     <p class="small muted">Ranking łączy siłę decku w mecie z tym, ile kart już masz i ile skrawków brakuje.</p>
   </section>
@@ -202,13 +203,15 @@ textarea{width:100%;min-height:96px;resize:vertical}
     </div>
     <div class="panel">
       <h2>Szybki import</h2>
-      <p class="small muted">Wklej nazwy kart (polskie albo angielskie), po jednej w linii, z dopiskiem „x2” przy dwóch kopiach. Tu wklejasz też tekst z playgwent.com albo kopię zapasową.</p>
+      <p class="small muted">Wklej nazwy kart (polskie albo angielskie), po jednej w linii, z dopiskiem „x2” przy dwóch kopiach. Tu wklejasz też kod kolekcji (GW1:…), tekst z playgwent.com albo kopię zapasową.</p>
       <textarea id="imp" placeholder="Artorius Vigo&#10;Poselstwo x2&#10;Agentka księżnej x2"></textarea>
       <div class="row"><button class="btn" id="impBtn">Dodaj do kolekcji</button><span class="small muted" id="impMsg"></span></div>
     </div>
     <div class="panel">
-      <h2>Kopia zapasowa</h2>
-      <p class="small muted">Kolekcja zapisuje się na tym urządzeniu. Skopiuj kopię, żeby przenieść ją na inny telefon albo komputer.</p>
+      <h2>Przenieś na inne urządzenie</h2>
+      <p class="small muted">Kolekcja zapisuje się osobno na każdym urządzeniu. Skopiuj kod, wyślij go sobie (np. w Messengerze) i na drugim urządzeniu wklej w „Szybki import”.</p>
+      <div class="row"><button class="btn" id="codeBtn">Kopiuj kod kolekcji</button></div>
+      <h2 style="margin-top:6px">Kopia zapasowa</h2>
       <div class="row">
         <button class="btn ghost" id="expBtn">Kopiuj kopię</button>
         <button class="btn ghost" id="dlBtn" hidden>Pobierz plik</button>
@@ -275,6 +278,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>1.6</b> Kod kolekcji do przenoszenia między telefonem a komputerem. Gdy kolekcja jest pusta, apka podpowiada, jak ją wczytać.</li>
         <li><b>1.5</b> Numer wersji i przycisk „Aktualizuj”, gdy na GitHubie jest nowsza wersja.</li>
         <li><b>1.4</b> Zakładka Zadania: rozpoznawanie zadań z gry i talie pod zadania z Twoich kart.</li>
         <li><b>1.3</b> Budżetowe decki z posiadanych kart.</li>
@@ -333,6 +337,7 @@ function renderRecs(){
   });
   let tot=0;for(const k in owned)tot+=owned[k];
   $("#ownedSum").textContent=`W kolekcji: ${tot} kopii`;
+  $("#emptybar").hidden=tot>0;
 }
 
 function facFilters(el,key,list){
@@ -464,6 +469,8 @@ $("#sortSel").onchange=e=>{ui.sort=e.target.value;renderDecks()};
 $("#missOnly").onchange=renderDecks;
 let st=null;$("#cSearch").oninput=()=>{clearTimeout(st);st=setTimeout(()=>{ui.limit=200;renderCollection()},150)};
 $("#cOwn").onchange=renderCollection;$("#cScope").onchange=renderCollection;
+function encodeCode(){const ids=Object.keys(owned).map(Number).sort((a,b)=>a-b);let prev=0;return "GW1:"+ids.map(id=>{const v=(id-prev)*2+(owned[id]-1);prev=id;return v.toString(36)}).join(".")}
+function decodeCode(t){const m=t.trim().match(/GW1:([0-9a-z.]+)/i);if(!m)return null;const o={};let prev=0;for(const p of m[1].split(".")){if(!p)continue;const v=parseInt(p,36);const id=prev+Math.floor(v/2);prev=id;const c=CARD[String(id)];if(c)o[id]=Math.min(v%2+1,maxOf(c))}return o}
 function importJSON(t){
   let o;try{o=JSON.parse(t)}catch(e){return null}
   const ids=Array.isArray(o)?o:(o&&Array.isArray(o.user_cards)?o.user_cards:null);
@@ -473,6 +480,7 @@ function importJSON(t){
 }
 $("#impBtn").onclick=()=>{
   const raw=$("#imp").value.trim();
+  const dc=decodeCode(raw);if(dc){owned=dc;changed();$("#impMsg").textContent=`Wczytano kolekcję z kodu: ${Object.keys(dc).length} kart`;$("#imp").value="";return}
   if(raw.startsWith("{")||raw.startsWith("[")){const m=importJSON(raw);$("#impMsg").textContent=m||"To nie jest poprawny JSON";if(m&&!m.startsWith("Nie"))$("#imp").value="";return}
   const lines=$("#imp").value.split(/\n|;/).map(s=>s.trim()).filter(Boolean);let ok=0;const bad=[];
   lines.forEach(l=>{let n=1,name=l,m=l.match(/^(.*\S)\s*[x×]\s*([12])$/i);
@@ -481,6 +489,8 @@ $("#impBtn").onclick=()=>{
   $("#impMsg").textContent=`Dodane: ${ok}`+(bad.length?` · nie rozpoznano: ${bad.slice(0,5).join(", ")}${bad.length>5?"…":""}`:"");
   if(ok){$("#imp").value="";changed()}
 };
+$("#emptyBtn").onclick=()=>{go("kolekcja");setTimeout(()=>$("#imp").scrollIntoView({behavior:"smooth",block:"center"}),50)};
+$("#codeBtn").onclick=()=>copyText(encodeCode(),"Kod skopiowany – wklej go na drugim urządzeniu");
 $("#snipBtn").onclick=()=>copyText($("#snip").textContent,"Kod skopiowany");
 $("#expBtn").onclick=()=>copyText(JSON.stringify(snap()),"Kopia skopiowana");
 $("#resetBtn").onclick=function(){if(this.dataset.armed){owned={};changed();this.textContent="Wyczyść kolekcję";delete this.dataset.armed;toast("Kolekcja wyczyszczona")}else{this.dataset.armed=1;this.textContent="Na pewno? Kliknij jeszcze raz";setTimeout(()=>{if(this.dataset.armed){delete this.dataset.armed;this.textContent="Wyczyść kolekcję"}},4000)}};
