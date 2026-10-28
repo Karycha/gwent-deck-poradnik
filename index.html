@@ -125,11 +125,13 @@ textarea{width:100%;min-height:96px;resize:vertical}
 .miss-t{color:var(--miss)}
 .crow.qhit{background:var(--ok-soft)}
 .btn.small{padding:3px 10px;font-size:.85rem}
+.ocrrow{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--sunk)}
+.ocrrow input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--ok)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><div class="wrap">
   <header class="top">
     <div>
-      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 1.7.2</span></div>
+      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 1.8</span></div>
       <h1>Warsztat Gwinta</h1>
     </div>
     <div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div>
@@ -221,12 +223,20 @@ textarea{width:100%;min-height:96px;resize:vertical}
 
   <section id="v-zadania" hidden style="display:grid;gap:14px">
     <div class="panel">
-      <h2>Dodaj zadania</h2>
-      <p class="small muted">Przepisz albo wklej treść zadań z gry (cykl, zadania dzienne, Podróż), każde w osobnej linii. Apka sama rozpozna frakcję, zestaw, słowo kluczowe i liczbę.</p>
+      <h2>Dodaj zadania ze screena</h2>
+      <p class="small muted">Zrób zrzut ekranu z zadaniami w grze (cykl, zadania dzienne, Podróż) i wybierz go tutaj. Apka sama odczyta zadania. Na komputerze możesz też wkleić screena skrótem Ctrl+V.</p>
+      <div class="row"><button class="btn" id="ocrBtn">Wybierz screeny</button><input type="file" id="ocrFile" accept="image/*" multiple hidden></div>
+      <p class="small" id="ocrStatus" role="status"></p>
+      <div id="ocrList" style="display:grid;gap:6px"></div>
+      <div class="row"><button class="btn" id="ocrAdd" hidden>Dodaj zaznaczone</button></div>
+    </div>
+    <div class="panel">
+      <h2>Albo wpisz ręcznie</h2>
+      <p class="small muted">Każde zadanie w osobnej linii. Apka sama rozpozna frakcję, zestaw, słowo kluczowe i liczbę.</p>
       <textarea id="qText" placeholder="Zagraj 5 szt. kart Scoia'tael z zestawu Przeklętej Ropuchy&#10;Wygraj kilka rozgrywek (3) frakcją „Nilfgaard”&#10;Zagraj Zaklęcia w liczbie 5"></textarea>
       <div class="row"><button class="btn" id="qAdd">Dodaj zadania</button></div>
     </div>
-    <div class="panel"><h2>Twoje zadania</h2><div id="qlist" style="display:grid;gap:10px"></div></div>
+    <div class="panel"><div class="row" style="justify-content:space-between"><h2>Twoje zadania</h2><div class="row"><button class="btn ghost small" id="qClearDone">Usuń wykonane</button><button class="btn ghost small" id="qClear">Usuń wszystkie zadania</button></div></div><div id="qlist" style="display:grid;gap:10px"></div></div>
     <div class="panel"><h2>Plan: czym grać</h2>
       <p class="small muted">Talie złożone automatycznie z Twoich kart tak, żeby jedną talią zaliczyć jak najwięcej zadań naraz. Zielone pole przy karcie = pasuje do zadania. To talie do odhaczania zadań, nie na ranking.</p>
       <div id="qplan" class="decks"></div></div>
@@ -276,6 +286,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>1.8</b> Zadania ze screena: wybierasz zrzut ekranu z gry, apka sama odczytuje zadania. Obsługa zadań typu „wygraj z co najmniej 13 kartami z zestawu Novigradu”.</li>
         <li><b>1.7.2</b> Poprawiona wskazówka do Królowej Zimy (wchodzi sama po Mrozie na obu rzędach).</li>
         <li><b>1.7</b> Poradnik w każdej talii: rola i wskazówka przy każdej karcie, widok „wg kolejności gry” i plan krok po kroku.</li>
         <li><b>1.6</b> Kod kolekcji do przenoszenia między telefonem a komputerem. Gdy kolekcja jest pusta, apka podpowiada, jak ją wczytać.</li>
@@ -514,7 +525,7 @@ const standalonePage=!/claude\.ai|claudeusercontent|anthropic/.test(location.hos
 if(standalonePage){
   const l=document.createElement("link");l.rel="manifest";l.href="manifest.webmanifest";document.head.appendChild(l);
   const ic=document.createElement("link");ic.rel="apple-touch-icon";ic.href="icons/icon-192.png";document.head.appendChild(ic);
-  const APPV="1.7.2";
+  const APPV="1.8";
   let swReg=null;
   if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{swReg=r}).catch(()=>{});
   const newer=(a,b)=>{const x=a.split(".").map(Number),y=b.split(".").map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0)}return false};
