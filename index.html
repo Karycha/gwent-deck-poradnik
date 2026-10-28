@@ -125,13 +125,14 @@ textarea{width:100%;min-height:96px;resize:vertical}
 .miss-t{color:var(--miss)}
 .crow.qhit{background:var(--ok-soft)}
 .btn.small{padding:3px 10px;font-size:.85rem}
+.fbtn.small{font-size:.78rem;padding:2px 9px}
 .ocrrow{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--sunk)}
 .ocrrow input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--ok)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><div class="wrap">
   <header class="top">
     <div>
-      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 1.8.2</span></div>
+      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 1.8.3</span></div>
       <h1>Warsztat Gwinta</h1>
     </div>
     <div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div>
@@ -286,6 +287,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>1.8.3</b> Lepsze odczytywanie zestawów ze screena. Przy każdym zadaniu możesz klikać zestawy, żeby poprawić odczyt.</li>
         <li><b>1.8</b> Zadania ze screena: wybierasz zrzut ekranu z gry, apka sama odczytuje zadania. Obsługa zadań typu „wygraj z co najmniej 13 kartami z zestawu Novigradu”.</li>
         <li><b>1.7.2</b> Poprawiona wskazówka do Królowej Zimy (wchodzi sama po Mrozie na obu rzędach).</li>
         <li><b>1.7</b> Poradnik w każdej talii: rola i wskazówka przy każdej karcie, widok „wg kolejności gry” i plan krok po kroku.</li>
@@ -525,7 +527,7 @@ const standalonePage=!/claude\.ai|claudeusercontent|anthropic/.test(location.hos
 if(standalonePage){
   const l=document.createElement("link");l.rel="manifest";l.href="manifest.webmanifest";document.head.appendChild(l);
   const ic=document.createElement("link");ic.rel="apple-touch-icon";ic.href="icons/icon-192.png";document.head.appendChild(ic);
-  const APPV="1.8.2";
+  const APPV="1.8.3";
   let swReg=null;
   if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{swReg=r}).catch(()=>{});
   const newer=(a,b)=>{const x=a.split(".").map(Number),y=b.split(".").map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0)}return false};
@@ -541,7 +543,7 @@ const SETNAME={pod:"Podstawowy",nov:"Novigrad",rop:"Przeklęta Ropucha",krw:"Krw
 const FACRX=[["ST",/scoia/i],["NG",/nilfgaard/i],["MO",/potwor/i],["NR",/królestw|północ/i],["SK",/skellige/i],["SY",/syndykat/i]];
 const plZad=n=>n===1?"zadanie":(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?"zadania":"zadań";
 const KWS=["Adrenalina","Zasadzka","Pancerz","Asymilacja","Wygnaj","Barykada","Szał","Krwawienie","Więź","Nagroda","Ładunek","Starcie","Spisek","Pochłoń","Odnowienie","Utwórz","Załoga","Śmiertelny cios","Zemsta","Obrońca","Rozmieszczenie","Lojalność","Odrzuć","Zdrada","Dominacja","Fatum","Kradzież","Pojedynek","Echo","Wrażliwość","Opłata","Flanka","Formacja","Łaska","Harmonia","Uzdrów","Kapitał","Odporność","Inicjatywa","Amok","Inspiracja","Zastraszenie","Rodowód","Zablokuj","Potęga","Rozkaz","Cierpliwość","Trucizna","Drapieżnik","Zysk","Oczyść","Wytrzymałość","Zaopatrzenie","Ujawnij","Skaza","Sabat","Przechwycenie","Tarcza","Stwórz","Uruchomienie","Szpieg","Wezwij","Symbioza","Pokrzepienie","Odliczanie","Haracz","Zasłona","Weteran","Występek","Witalność","Zapał"];
-const SETRX=[["pod",/podstawow|startow/i],["nov",/novigrad/i],["rop",/ropuch/i],["krw",/krwaw\S* klątw/i],["zel",/żelazn/i],["cen",/cen\S* władzy/i],["uro",/uroboros/i],["lus",/lusterk/i],["wie",/drog\S* wiedźmin/i],["ofi",/ofir/i],["woj",/wojn\S* krwi/i]];
+const SETRX=[["pod",/podstawow|startow/i],["nov",/n[ao]vigrad/i],["rop",/ropuc/i],["krw",/krwaw\S* klątw/i],["zel",/żelazn/i],["cen",/cen\S* władzy/i],["uro",/uroboros/i],["lus",/lusterk/i],["wie",/drog\S* wiedźmin/i],["ofi",/ofir/i],["woj",/wojn\S* krwi/i]];
 const CATRX=[["Zaklęcie",/zaklę/i],["Taktyka",/taktyk/i],["Alchemia",/alchemi/i],["Bomba",/bomb/i],["Rejza",/rejz/i],["Zbrodnia",/zbrodni/i],["Natura",/natur/i],["Organiczne",/organiczn/i],["Działania Wojenne",/działa\S* wojenn/i],["Żołnierz",/żołnierz/i],["Wiedźmin",/wiedźmin/i],["Smok",/smok/i],["Krasnolud",/krasnolud/i],["Elf",/(^|\s)elf/i],["Driada",/driad/i],["Wampir",/wampir/i],["Insektoid",/insektoid/i],["Kultysta",/kultyst/i],["Korsarz",/korsarz/i],["Wojownik",/wojownik/i],["Okręt",/okręt/i],["Maszyna",/maszyn/i],["Czarodziej",/czarodziej/i],["Bestia",/besti/i],["Ogroid",/ogroid/i],["Relikt",/relikt/i],["Rycerz",/rycerz/i],["Agent",/agent/i],["Arystokrata",/arystokrat/i],["Pułapka",/pułapk/i],["Lokalizacja",/lokalizacj/i]];
 const NOAUTO=new Set(["Renfri","Golden Nekker","Shupe's Day Off","Radeyah","Ciri: Nova","Renfri's Gang","Tatterwing","Musicians of Blaviken"]);
 let quests=[];
@@ -632,6 +634,9 @@ function renderQuests(){
     el.querySelector(".qdel").onclick=()=>{quests.splice(i,1);changed()};
     el.querySelector(".qprog").onchange=e=>{q.prog=Math.max(0,Math.min(q.n,+e.target.value||0));changed()};
     el.querySelector(".qfac").onchange=e=>{q.f=e.target.value;changed()};
+    if(q.k!=="win"){const sw=document.createElement("div");sw.className="filters small";sw.innerHTML='<span class="muted">Zestawy:</span>';
+      Object.keys(SETNAME).filter(k=>k!=="inne").forEach(k=>{const b=document.createElement("button");b.className="fbtn small";b.textContent=SETNAME[k];b.setAttribute("aria-pressed",q.sets.includes(k));b.onclick=()=>{q.sets=q.sets.includes(k)?q.sets.filter(x=>x!==k):[...q.sets,k];changed()};sw.appendChild(b)});
+      el.insertBefore(sw,el.querySelector(".qcards").previousElementSibling);}
     if(q.k!=="win"){const ch=el.querySelector(".qcards");own.sort((a,b)=>CARD[a].f.localeCompare(CARD[b].f)||CARD[b].p-CARD[a].p).slice(0,24).forEach(k=>{const s=document.createElement("span");s.className="qchip";s.style.setProperty("--fc",fcol(CARD[k].f));s.textContent=(owned[k]>1?owned[k]+"× ":"")+CARD[k].pl;ch.appendChild(s)});if(own.length>24){const s=document.createElement("span");s.className="small muted";s.textContent=`+${own.length-24} więcej`;ch.appendChild(s)}}
     box.appendChild(el);
   });
@@ -681,7 +686,7 @@ function questsFromText(raw){
     const fr=p.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\S{0,3}\s*$/);
     if(/^(\d+\s*razy\s+wygraj|zagraj|wygraj)/i.test(p)){
       let txt=p.replace(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\S{0,3}\s*$/,"");
-      const rx=/(Ropuchy|Novigradu|Krwi|podstawowego|startowego|Klątwy|Osądu|Władzy|Lusterka|Wiedźmina|Ofiru|Uroborosa|liczbie \d+|frakcj\S*\s+\S+)/gi;let m,last=null;while((m=rx.exec(txt)))last=m;
+      const rx=/(Ropuc\S*|N[ao]vigrad\S*|Krwi\S*|podstawow\S*|startow\S*|Klątw\S*|Osąd\S*|Władz\S*|Lusterk\S*|Wiedźmin\S*|Ofir\S*|Uroboros\S*|liczbie \d+|frakcj\S*\s+\S+)/gi;let m,last=null;while((m=rx.exec(txt)))last=m;
       if(last)txt=txt.slice(0,last.index+last[0].length);
       txt=txt.replace(/\s+[^\sA-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9]{1,3}(?=\s|$)/g," ").replace(/\s+/g," ").trim();
       const q=parseQuest(txt);if(carry&&+carry[2]===q.n)q.prog=Math.min(+carry[1],q.n);out.push(q);

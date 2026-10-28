@@ -3,7 +3,7 @@ const SETNAME={pod:"Podstawowy",nov:"Novigrad",rop:"Przeklęta Ropucha",krw:"Krw
 const FACRX=[["ST",/scoia/i],["NG",/nilfgaard/i],["MO",/potwor/i],["NR",/królestw|północ/i],["SK",/skellige/i],["SY",/syndykat/i]];
 const plZad=n=>n===1?"zadanie":(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?"zadania":"zadań";
 const KWS=["Adrenalina","Zasadzka","Pancerz","Asymilacja","Wygnaj","Barykada","Szał","Krwawienie","Więź","Nagroda","Ładunek","Starcie","Spisek","Pochłoń","Odnowienie","Utwórz","Załoga","Śmiertelny cios","Zemsta","Obrońca","Rozmieszczenie","Lojalność","Odrzuć","Zdrada","Dominacja","Fatum","Kradzież","Pojedynek","Echo","Wrażliwość","Opłata","Flanka","Formacja","Łaska","Harmonia","Uzdrów","Kapitał","Odporność","Inicjatywa","Amok","Inspiracja","Zastraszenie","Rodowód","Zablokuj","Potęga","Rozkaz","Cierpliwość","Trucizna","Drapieżnik","Zysk","Oczyść","Wytrzymałość","Zaopatrzenie","Ujawnij","Skaza","Sabat","Przechwycenie","Tarcza","Stwórz","Uruchomienie","Szpieg","Wezwij","Symbioza","Pokrzepienie","Odliczanie","Haracz","Zasłona","Weteran","Występek","Witalność","Zapał"];
-const SETRX=[["pod",/podstawow|startow/i],["nov",/novigrad/i],["rop",/ropuch/i],["krw",/krwaw\S* klątw/i],["zel",/żelazn/i],["cen",/cen\S* władzy/i],["uro",/uroboros/i],["lus",/lusterk/i],["wie",/drog\S* wiedźmin/i],["ofi",/ofir/i],["woj",/wojn\S* krwi/i]];
+const SETRX=[["pod",/podstawow|startow/i],["nov",/n[ao]vigrad/i],["rop",/ropuc/i],["krw",/krwaw\S* klątw/i],["zel",/żelazn/i],["cen",/cen\S* władzy/i],["uro",/uroboros/i],["lus",/lusterk/i],["wie",/drog\S* wiedźmin/i],["ofi",/ofir/i],["woj",/wojn\S* krwi/i]];
 const CATRX=[["Zaklęcie",/zaklę/i],["Taktyka",/taktyk/i],["Alchemia",/alchemi/i],["Bomba",/bomb/i],["Rejza",/rejz/i],["Zbrodnia",/zbrodni/i],["Natura",/natur/i],["Organiczne",/organiczn/i],["Działania Wojenne",/działa\S* wojenn/i],["Żołnierz",/żołnierz/i],["Wiedźmin",/wiedźmin/i],["Smok",/smok/i],["Krasnolud",/krasnolud/i],["Elf",/(^|\s)elf/i],["Driada",/driad/i],["Wampir",/wampir/i],["Insektoid",/insektoid/i],["Kultysta",/kultyst/i],["Korsarz",/korsarz/i],["Wojownik",/wojownik/i],["Okręt",/okręt/i],["Maszyna",/maszyn/i],["Czarodziej",/czarodziej/i],["Bestia",/besti/i],["Ogroid",/ogroid/i],["Relikt",/relikt/i],["Rycerz",/rycerz/i],["Agent",/agent/i],["Arystokrata",/arystokrat/i],["Pułapka",/pułapk/i],["Lokalizacja",/lokalizacj/i]];
 const NOAUTO=new Set(["Renfri","Golden Nekker","Shupe's Day Off","Radeyah","Ciri: Nova","Renfri's Gang","Tatterwing","Musicians of Blaviken"]);
 let quests=[];
@@ -94,6 +94,9 @@ function renderQuests(){
     el.querySelector(".qdel").onclick=()=>{quests.splice(i,1);changed()};
     el.querySelector(".qprog").onchange=e=>{q.prog=Math.max(0,Math.min(q.n,+e.target.value||0));changed()};
     el.querySelector(".qfac").onchange=e=>{q.f=e.target.value;changed()};
+    if(q.k!=="win"){const sw=document.createElement("div");sw.className="filters small";sw.innerHTML='<span class="muted">Zestawy:</span>';
+      Object.keys(SETNAME).filter(k=>k!=="inne").forEach(k=>{const b=document.createElement("button");b.className="fbtn small";b.textContent=SETNAME[k];b.setAttribute("aria-pressed",q.sets.includes(k));b.onclick=()=>{q.sets=q.sets.includes(k)?q.sets.filter(x=>x!==k):[...q.sets,k];changed()};sw.appendChild(b)});
+      el.insertBefore(sw,el.querySelector(".qcards").previousElementSibling);}
     if(q.k!=="win"){const ch=el.querySelector(".qcards");own.sort((a,b)=>CARD[a].f.localeCompare(CARD[b].f)||CARD[b].p-CARD[a].p).slice(0,24).forEach(k=>{const s=document.createElement("span");s.className="qchip";s.style.setProperty("--fc",fcol(CARD[k].f));s.textContent=(owned[k]>1?owned[k]+"× ":"")+CARD[k].pl;ch.appendChild(s)});if(own.length>24){const s=document.createElement("span");s.className="small muted";s.textContent=`+${own.length-24} więcej`;ch.appendChild(s)}}
     box.appendChild(el);
   });
@@ -143,7 +146,7 @@ function questsFromText(raw){
     const fr=p.match(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\S{0,3}\s*$/);
     if(/^(\d+\s*razy\s+wygraj|zagraj|wygraj)/i.test(p)){
       let txt=p.replace(/(\d{1,2})\s*\/\s*(\d{1,2})\s*\S{0,3}\s*$/,"");
-      const rx=/(Ropuchy|Novigradu|Krwi|podstawowego|startowego|Klątwy|Osądu|Władzy|Lusterka|Wiedźmina|Ofiru|Uroborosa|liczbie \d+|frakcj\S*\s+\S+)/gi;let m,last=null;while((m=rx.exec(txt)))last=m;
+      const rx=/(Ropuc\S*|N[ao]vigrad\S*|Krwi\S*|podstawow\S*|startow\S*|Klątw\S*|Osąd\S*|Władz\S*|Lusterk\S*|Wiedźmin\S*|Ofir\S*|Uroboros\S*|liczbie \d+|frakcj\S*\s+\S+)/gi;let m,last=null;while((m=rx.exec(txt)))last=m;
       if(last)txt=txt.slice(0,last.index+last[0].length);
       txt=txt.replace(/\s+[^\sA-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9]{1,3}(?=\s|$)/g," ").replace(/\s+/g," ").trim();
       const q=parseQuest(txt);if(carry&&+carry[2]===q.n)q.prog=Math.min(+carry[1],q.n);out.push(q);
