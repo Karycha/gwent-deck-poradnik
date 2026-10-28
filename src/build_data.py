@@ -10,13 +10,15 @@ db = json.load(open(SRC))
 FAC = {"Nilfgaard":"NG","Monster":"MO","Northern Realms":"NR","Scoiatael":"ST","Skellige":"SK","Syndicate":"SY","Neutral":"NE"}
 SCRAP = {"Common":30,"Rare":80,"Epic":200,"Legendary":800}
 TYPE_PL = {"Unit":"J","Special":"S","Artifact":"A"}
+SETS = {"BaseSet":"pod","Unmillable":"pod","Novigrad":"nov","Cursed Toad":"rop","CrimsonCurse":"krw","Iron Judgment":"zel",
+        "Price of Power":"cen","Uroboros":"uro","Master Mirror":"lus","Way of the Witcher":"wie","Merchants of Ofir":"ofi","Thronebreaker":"woj"}
 
 cards, by_en, leaders = {}, {}, {}
 for v in db.values():
     en = v["name"]["en-US"]; pl = v["name"]["pl-PL"]
     if v["type"] == "Ability":
         m = re.search(r"adds (\d+) provisions", v["ability"]["en-US"])
-        leaders[en] = dict(pl=pl, bonus=int(m.group(1)) if m else 15, f=FAC[v["faction"]],
+        leaders[en] = dict(id=v["cardId"], pl=pl, en=en, bonus=int(m.group(1)) if m else 15, f=FAC[v["faction"]],
                            ab=re.sub(r"\s+"," ",v["ability"]["pl-PL"]).strip())
         continue
     if not v.get("collectible") or v["type"] == "Stratagem":
@@ -25,7 +27,7 @@ for v in db.values():
     prov = PROV_2026.get(en, v["provision"])  # nadpisywane niżej danymi na żywo
     c = dict(id=cid, en=en, pl=pl, f=FAC[v["faction"]], g=1 if v["color"]=="Gold" else 0,
              p=prov, pw=POWER_2026.get(en, v.get("power",0)), t=TYPE_PL.get(v["type"],"J"),
-             r=v["rarity"][0], cat=(v.get("categories") or {}).get("pl-PL",""),
+             r=v["rarity"][0], s=SETS.get(v.get("availability"),"inne"), cat=(v.get("categories") or {}).get("pl-PL",""),
              ab=re.sub(r"\s+"," ",(v.get("ability") or {}).get("pl-PL","") or "").strip())
     cards[cid] = c
     by_en.setdefault(en, []).append(cid)
@@ -84,6 +86,7 @@ for d in out_decks:
 if errors:
     print("\nBŁĘDY:"); [print(" -", e) for e in errors]; sys.exit(1)
 
-data = dict(scrap=SCRAP, cards=list(cards.values()), decks=out_decks)
+data = dict(scrap=SCRAP, cards=list(cards.values()), decks=out_decks,
+            leaders=[dict(id=l["id"], pl=l["pl"], en=k, f=l["f"], bonus=l["bonus"], ab=l["ab"]) for k,l in leaders.items() if l["f"]!="NE"])
 json.dump(data, open(OUT,"w"), ensure_ascii=False, separators=(",",":"))
 print(f"\nOK: {len(cards)} kart, {len(out_decks)} decków, {os.path.getsize(OUT)//1024} KB")
