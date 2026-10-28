@@ -1,0 +1,455 @@
+<title>Warsztat Gwinta</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#11141A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Warsztat Gwinta">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Układ: warsztat — wąska kolumna, pasek „Co grać teraz”, zakładki Decki / Kolekcja / Poradnik */
+:root{
+  --bg:#ECEEF1; --surface:#F8F9FB; --sunk:#E2E6EB; --ink:#1A1E26; --muted:#596272; --line:#D2D7DE;
+  --accent:#8E6219; --accent-ink:#FFFFFF; --accent-soft:#F2E6CF;
+  --ok:#2F7A4B; --ok-soft:#DCEFE2; --miss:#A33A2E; --miss-soft:#F6DEDA;
+  --gold:#A57A12; --bronze:#8A5A3A;
+  --r-c:#6B7280; --r-r:#2D6FB5; --r-e:#7E3FB0; --r-l:#B5821A;
+  --ng:#8A6A12; --nr:#2C5DA8; --mo:#9C2F2F; --st:#3D7A2E; --sk:#6A3F9A; --sy:#B05A12; --ne:#5E6676;
+  --f-display:"Alegreya SC", Georgia, "Times New Roman", serif;
+  --f-body:"Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11141A; --surface:#191E27; --sunk:#222935; --ink:#E6E8EC; --muted:#9AA3B2; --line:#2B3240;
+  --accent:#D6A64F; --accent-ink:#1A1408; --accent-soft:#3A2F1B;
+  --ok:#6CC08A; --ok-soft:#1E3427; --miss:#E57E70; --miss-soft:#3D2220;
+  --gold:#E2B84E; --bronze:#C48E68;
+  --r-c:#A3ABBA; --r-r:#6FA8F0; --r-e:#C090EE; --r-l:#E6B64A;
+  --ng:#D9B54A; --nr:#7AA6F0; --mo:#E37373; --st:#86C46F; --sk:#B48AE6; --sy:#EE9A50; --ne:#A3ABBA;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11141A; --surface:#191E27; --sunk:#222935; --ink:#E6E8EC; --muted:#9AA3B2; --line:#2B3240;
+  --accent:#D6A64F; --accent-ink:#1A1408; --accent-soft:#3A2F1B;
+  --ok:#6CC08A; --ok-soft:#1E3427; --miss:#E57E70; --miss-soft:#3D2220;
+  --gold:#E2B84E; --bronze:#C48E68;
+  --r-c:#A3ABBA; --r-r:#6FA8F0; --r-e:#C090EE; --r-l:#E6B64A;
+  --ng:#D9B54A; --nr:#7AA6F0; --mo:#E37373; --st:#86C46F; --sk:#B48AE6; --sy:#EE9A50; --ne:#A3ABBA;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 56px;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:2rem;line-height:1.1} h2{font-size:1.35rem} h3{font-size:1.08rem}
+p{margin:0}
+.muted{color:var(--muted)} .small{font-size:.86rem}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.label{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:700}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px}
+.status{font-size:.85rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)} .dot.ok{background:var(--ok)} .dot.warn{background:var(--accent)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:12px}
+.recgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.rec{border:0;border-left:4px solid var(--fc,var(--accent));padding:6px 0 6px 12px;display:grid;gap:2px;cursor:pointer;background:none;text-align:left;color:inherit;font:inherit}
+.rec:hover .rec-name,.rec:focus-visible .rec-name{text-decoration:underline}
+.rec-name{font-weight:700;font-size:1.02rem;line-height:1.25}
+.tabs{display:flex;gap:4px;background:var(--sunk);padding:4px;border-radius:999px;align-self:flex-start;flex-wrap:wrap}
+.tab{border:0;background:transparent;color:var(--muted);font:inherit;font-weight:700;padding:7px 16px;border-radius:999px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.14)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:.88rem;padding:4px 12px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.fbtn[aria-pressed="true"]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.fbtn .sw{width:9px;height:9px;border-radius:50%;background:var(--fc)}
+select,input[type=search],input[type=text],textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;max-width:100%}
+textarea{width:100%;min-height:96px;resize:vertical}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:inherit;font-weight:700;border-radius:8px;padding:7px 14px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.decks{display:grid;gap:12px}
+.deck{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.deck-head{display:grid;grid-template-columns:1fr auto;gap:6px 12px;padding:14px 16px;cursor:pointer;background:none;border:0;width:100%;text-align:left;color:inherit;font:inherit}
+.deck-title{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0}
+.fchip{font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fc);border:1px solid var(--fc);padding:1px 7px;border-radius:4px}
+.tier{font-size:.75rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.tier.t1{background:var(--accent);color:var(--accent-ink)} .tier.t2{background:var(--accent-soft);color:var(--ink)}
+.deck-meta{grid-column:1 / -1;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.9rem;color:var(--muted)}
+.prog{grid-column:1 / -1;display:flex;align-items:center;gap:10px}
+.bar{flex:1;height:8px;background:var(--sunk);border-radius:999px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--fc,var(--accent));border-radius:999px}
+.score{font-family:var(--f-mono);font-size:.86rem;white-space:nowrap}
+.chev{align-self:start;font-family:var(--f-mono);color:var(--muted);transition:transform .15s}
+.deck.open .chev{transform:rotate(90deg)}
+.deck-body{border-top:1px solid var(--line);padding:14px 16px 16px;display:grid;gap:16px}
+.leaderbox{background:var(--sunk);border-radius:8px;padding:10px 12px;display:grid;gap:2px}
+.sumrow{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.9rem}
+.sumrow b{font-family:var(--f-mono);font-weight:500}
+.clist{display:grid}
+.crow{display:grid;grid-template-columns:2.2rem 1fr auto;gap:10px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line);min-width:0}
+.crow:last-child{border-bottom:0}
+.pv{font-family:var(--f-mono);font-size:.95rem;text-align:center;border-radius:6px;padding:2px 0;border:1px solid var(--line)}
+.pv.g{border-color:var(--gold);color:var(--gold)} .pv.b{border-color:var(--bronze);color:var(--bronze)}
+.cname{min-width:0;display:grid;gap:0}
+.cname .n{font-weight:700;line-height:1.25;overflow-wrap:anywhere}
+.cname .s{font-size:.78rem;color:var(--muted);overflow-wrap:anywhere}
+.cname button{all:unset;cursor:pointer;display:grid}
+.cname button:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.ab{font-size:.85rem;color:var(--ink);background:var(--sunk);border-radius:6px;padding:6px 8px;margin-top:4px}
+.own{display:flex;align-items:center;gap:6px}
+.need{font-family:var(--f-mono);font-size:.82rem;color:var(--muted);white-space:nowrap}
+.step{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.step button{font:inherit;font-family:var(--f-mono);min-width:34px;height:32px;border:0;background:var(--surface);color:var(--ink);cursor:pointer}
+.step button+button{border-left:1px solid var(--line)}
+.step button[aria-pressed="true"]{background:var(--ok);color:var(--surface)}
+.step.miss button[aria-pressed="true"]{background:var(--miss);color:var(--surface)}
+.rdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+.rC{background:var(--r-c)} .rR{background:var(--r-r)} .rE{background:var(--r-e)} .rL{background:var(--r-l)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.grid2>div{min-width:0;display:grid;gap:4px;align-content:start}
+.note{font-size:.95rem;max-width:68ch}
+.cgroup h3{display:flex;align-items:center;gap:8px;color:var(--fc);margin:6px 0 2px}
+.guide{display:grid;gap:14px}
+.guide section{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;display:grid;gap:8px}
+.guide ul,.guide ol{margin:0;padding-left:1.2em;display:grid;gap:4px;max-width:70ch}
+.empty{color:var(--muted);padding:12px 0}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:.9rem;z-index:20}
+.missonly .crow.have{display:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="label">Gwint · meta po Radzie z 1.10.2026</div>
+      <h1>Warsztat Gwinta</h1>
+    </div>
+    <div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div>
+  </header>
+
+  <section class="panel" aria-labelledby="rech">
+    <div class="row" style="justify-content:space-between">
+      <h2 id="rech">Co grać teraz</h2>
+      <span class="small muted mono" id="ownedSum"></span>
+    </div>
+    <div class="recgrid" id="recs"></div>
+    <p class="small muted">Ranking łączy siłę decku w mecie z tym, ile kart już masz i ile skrawków brakuje.</p>
+  </section>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-decki" data-v="decki">Decki</button>
+    <button class="tab" role="tab" id="tab-kolekcja" data-v="kolekcja">Kolekcja</button>
+    <button class="tab" role="tab" id="tab-poradnik" data-v="poradnik">Poradnik</button>
+  </div>
+
+  <section id="v-decki" style="display:grid;gap:14px">
+    <div class="filters" id="deckFilters"></div>
+    <div class="row small">
+      <label for="sortSel" class="muted">Sortuj:</label>
+      <select id="sortSel">
+        <option value="rec">Najlepsze dla mnie</option>
+        <option value="tier">Siła w mecie</option>
+        <option value="scrap">Najtańsze do dokończenia</option>
+      </select>
+      <label class="row muted" style="gap:6px"><input type="checkbox" id="missOnly"> tylko brakujące karty</label>
+    </div>
+    <div class="decks" id="decks"></div>
+  </section>
+
+  <section id="v-kolekcja" hidden style="display:grid;gap:14px">
+    <div class="panel">
+      <div class="row" style="justify-content:space-between">
+        <h2>Moje karty</h2>
+        <span class="small muted mono" id="colCount"></span>
+      </div>
+      <div class="row">
+        <input type="search" id="cSearch" placeholder="Szukaj (PL lub EN)…" aria-label="Szukaj karty" style="flex:1;min-width:0">
+        <select id="cOwn" aria-label="Pokaż">
+          <option value="all">Wszystkie</option>
+          <option value="have">Mam</option>
+          <option value="miss">Nie mam</option>
+        </select>
+        <select id="cScope" aria-label="Zakres">
+          <option value="all">Cała baza</option>
+          <option value="decks">Tylko z decków</option>
+        </select>
+      </div>
+      <div class="filters" id="colFilters"></div>
+      <div id="clist"></div>
+    </div>
+    <div class="panel">
+      <h2>Szybki import</h2>
+      <p class="small muted">Wklej nazwy kart (polskie albo angielskie), po jednej w linii. Dopisz „x2”, jeśli masz dwie kopie brązowej karty.</p>
+      <textarea id="imp" placeholder="Artorius Vigo&#10;Poselstwo x2&#10;Agentka księżnej x2"></textarea>
+      <div class="row"><button class="btn" id="impBtn">Dodaj do kolekcji</button><span class="small muted" id="impMsg"></span></div>
+    </div>
+    <div class="panel">
+      <h2>Kopia zapasowa</h2>
+      <p class="small muted">Kolekcja zapisuje się na tym urządzeniu. Skopiuj kopię, żeby przenieść ją na inny telefon albo komputer.</p>
+      <div class="row">
+        <button class="btn ghost" id="expBtn">Kopiuj kopię</button>
+        <button class="btn ghost" id="dlBtn" hidden>Pobierz plik</button>
+        <button class="btn ghost" id="resetBtn">Wyczyść kolekcję</button>
+      </div>
+      <textarea id="expTxt" readonly hidden aria-label="Kopia zapasowa"></textarea>
+    </div>
+  </section>
+
+  <section id="v-poradnik" hidden class="guide">
+    <section>
+      <h2>Jak złożyć deck z tej apki</h2>
+      <ol>
+        <li>Wybierz deck z „Co grać teraz”. Najwyżej jest ten, który jest mocny i do którego masz najwięcej kart.</li>
+        <li>W grze otwórz kreator, wybierz frakcję i <b>umiejętność przywódcy</b> podaną przy decku.</li>
+        <li>Wrzuć karty z listy. Brakującą kartę zastąp tańszą o tej samej roli albo dociśnij skrawkami.</li>
+        <li>Pilnuj <b>25 kart</b>, co najmniej <b>13 jednostek</b> i limitu prowizji. Licznik w kreatorze jest ostateczny, bo Rada Balansu zmienia koszty co miesiąc.</li>
+        <li>Zagraj kilka meczów, zanim zaczniesz craftować. Craftuj to, czego brak realnie Cię boli.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>Rundy i pasowanie</h2>
+      <ul>
+        <li><b>Runda 1:</b> wygraj tanio albo oddaj ją, zachowując przewagę kart. Nie wydawaj złotych kart bez potrzeby.</li>
+        <li><b>Niebieska moneta</b> (zaczynasz): uważaj, żeby nie przegrać rundy przy równej liczbie kart.</li>
+        <li><b>Runda 2:</b> jeśli wygrałeś R1, zmuś rywala do grania kartami (krwawienie). Jeśli przegrałeś, wygraj najmniejszym kosztem.</li>
+        <li><b>Runda 3:</b> tu grają silniki i finishery. Licz, kto ma ostatnie słowo.</li>
+        <li>Pasuj, gdy dalsze granie tylko wymienia karty 1 za 1 bez zysku.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Mulligan</h2>
+      <ul>
+        <li>Odrzucaj karty, które tutor ma wyciągnąć z talii, duble brązów i karty bez celu w tym meczu.</li>
+        <li>Złotych kart zwykle nie mulliganuj, bo możesz ich już nie zobaczyć.</li>
+        <li>Kartę „tech” (np. oczyszczenie) trzymaj tylko, jeśli rywal ma z czym jej użyć.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Zasoby: klucze, beczki, skrawki</h2>
+      <ul>
+        <li><b>Klucze (punkty nagród):</b> wydawaj w drzewku frakcji, którą budujesz. Wybieraj krótkie ścieżki z kilkoma nagrodami po drodze. Kosmetyki zostaw na później.</li>
+        <li><b>Ruda:</b> beczki tej frakcji, dopóki dają nowe karty. Gdy lecą same duble, przestań.</li>
+        <li><b>Skrawki:</b> zwykła 30, rzadka 80, epicka 200, legendarna 800. Apka liczy, ile brakuje do każdego decku.</li>
+        <li><b>Pył meteorytowy</b> to tylko animowane wersje kart. Nie zwiększa siły.</li>
+        <li>Zagraj chociaż jeden mecz rankingowy w sezonie. Nagroda w kluczach przychodzi po zalogowaniu w następnym.</li>
+        <li>Nie mieluj masowo innych frakcji. Mielenia i craftu nie da się cofnąć.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Skąd te decki</h2>
+      <p class="note small">Archetypy i ich siłę wziąłem z przeglądów Rady Balansu na leriohub.com (wrzesień i październik 2026, decki z Pro Ladder 2.5k+ fMMR). Pełne listy po 25 kart złożyłem sam pod te archetypy z bazy kart gwent.one, z polskimi nazwami z gry. Każdą sprawdziłem: 25 kart, co najmniej 13 jednostek, limity kopii i prowizji. Koszty pochodzą z ostatniej publicznej bazy kart plus znanych zmian z września i października 2026, więc ostatecznie sprawdź licznik w kreatorze.</p>
+    </section>
+  </section>
+</div>
+
+<script type="application/json" id="gdata">__DATA__</script>
+<script>
+(function(){
+const DATA=JSON.parse(document.getElementById("gdata").textContent);
+const FAC={NG:{n:"Nilfgaard",c:"--ng"},NR:{n:"Królestwa Północy",c:"--nr"},MO:{n:"Potwory",c:"--mo"},ST:{n:"Scoia'tael",c:"--st"},SK:{n:"Skellige",c:"--sk"},SY:{n:"Syndykat",c:"--sy"},NE:{n:"Neutralne",c:"--ne"}};
+const TIER={1:{l:"Top meta",w:1},2:{l:"Mocny",w:.85},3:{l:"Budżet / nauka",w:.7}};
+const RAR={C:"zwykła",R:"rzadka",E:"epicka",L:"legendarna"};
+const SCRAP={C:30,R:80,E:200,L:800};
+const TYPE={J:"jednostka",S:"specjalna",A:"artefakt"};
+const CARD={}; DATA.cards.forEach(c=>CARD[c.id]=c);
+const INDECK={}; DATA.decks.forEach(d=>d.cards.forEach(([id])=>(INDECK[id]=INDECK[id]||[]).push(d.id)));
+const norm=s=>s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/ł/g,"l").replace(/[^a-z0-9]+/g," ").trim();
+const BYNAME={}; DATA.cards.forEach(c=>{BYNAME[norm(c.pl)]=BYNAME[norm(c.pl)]||c.id;BYNAME[norm(c.en)]=BYNAME[norm(c.en)]||c.id});
+const maxOf=c=>c.g?1:2;
+const fcol=f=>`var(${FAC[f].c})`;
+const $=s=>document.querySelector(s);
+
+let owned={}; // id -> liczba kopii
+let ui={view:"decki",dfac:"ALL",cfac:"NG",open:new Set(),sort:"rec",abOpen:new Set(),limit:200};
+const KEY="gwint-kolekcja-v2";
+let db=null,docRef=null;
+
+function deckStats(d){
+  let have=0,need=0,scrap=0,missCards=0;
+  d.cards.forEach(([id,n])=>{const o=Math.min(owned[id]||0,n);have+=o;need+=n;const m=n-o;if(m>0){missCards+=m;scrap+=m*SCRAP[CARD[id].r]}});
+  const pct=have/need; const score=pct*TIER[d.t].w-Math.min(scrap,8000)/80000;
+  return {have,need,pct,scrap,missCards,score};
+}
+function setStatus(k,t){$("#sdot").className="dot "+(k||"");$("#stext").textContent=t}
+function toast(t){const e=document.createElement("div");e.className="toast";e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2200)}
+const fmt=n=>n.toLocaleString("pl-PL");
+
+function renderRecs(){
+  const ranked=DATA.decks.map(d=>({d,s:deckStats(d)})).sort((a,b)=>b.s.score-a.s.score||a.d.t-b.d.t).slice(0,3);
+  const box=$("#recs");box.innerHTML="";
+  ranked.forEach(({d,s},i)=>{
+    const b=document.createElement("button");b.className="rec";b.style.setProperty("--fc",fcol(d.f));
+    b.innerHTML=`<span class="label">${i+1}. ${FAC[d.f].n} · ${TIER[d.t].l}</span><span class="rec-name"></span><span class="small muted mono">${s.have}/25 kart · ${s.scrap?fmt(s.scrap)+" skrawków":"komplet"}</span>`;
+    b.querySelector(".rec-name").textContent=d.name;
+    b.onclick=()=>{ui.open.add(d.id);ui.dfac="ALL";go("decki");setTimeout(()=>document.getElementById("deck-"+d.id)?.scrollIntoView({behavior:"smooth",block:"start"}),40)};
+    box.appendChild(b);
+  });
+  let tot=0;for(const k in owned)tot+=owned[k];
+  $("#ownedSum").textContent=`W kolekcji: ${tot} kopii`;
+}
+
+function facFilters(el,key,list){
+  el.innerHTML="";
+  list.forEach(f=>{
+    const b=document.createElement("button");b.className="fbtn";b.setAttribute("aria-pressed",ui[key]===f);
+    if(f!=="ALL"){b.style.setProperty("--fc",fcol(f));b.innerHTML='<span class="sw"></span>'}
+    b.append(f==="ALL"?"Wszystkie":FAC[f].n);
+    b.onclick=()=>{ui[key]=f;ui.limit=200;render()};
+    el.appendChild(b);
+  });
+}
+
+function stepper(id,miss){
+  const c=CARD[id],m=maxOf(c),o=owned[id]||0;
+  const w=document.createElement("div");w.className="step"+(miss?" miss":"");w.setAttribute("role","group");w.setAttribute("aria-label","Ile kopii mam: "+c.pl);
+  for(let i=0;i<=m;i++){const b=document.createElement("button");b.textContent=i;b.setAttribute("aria-pressed",o===i);b.title=`Mam ${i}`;b.onclick=e=>{e.stopPropagation();setOwned(id,i)};w.appendChild(b)}
+  return w;
+}
+function cardRow(id,need){
+  const c=CARD[id],o=owned[id]||0,have=need?o>=need:o>0;
+  const r=document.createElement("div");r.className="crow "+(have?"have":"miss");
+  const pv=document.createElement("div");pv.className="pv "+(c.g?"g":"b");pv.textContent=c.p;pv.title=(c.g?"złota":"brązowa")+", koszt "+c.p;
+  const nm=document.createElement("div");nm.className="cname";
+  const bt=document.createElement("button");bt.setAttribute("aria-expanded",ui.abOpen.has(id));
+  bt.innerHTML=`<span class="n"></span><span class="s"><span class="rdot r${c.r}"></span></span>`;
+  bt.querySelector(".n").textContent=(need===2?"2× ":"")+c.pl;
+  bt.querySelector(".s").append(`${RAR[c.r]} · ${TYPE[c.t]}${c.t==="J"?" "+c.pw:""}${c.en!==c.pl?" · "+c.en:""}`);
+  bt.onclick=()=>{ui.abOpen.has(id)?ui.abOpen.delete(id):ui.abOpen.add(id);render()};
+  nm.appendChild(bt);
+  if(ui.abOpen.has(id)){const a=document.createElement("div");a.className="ab";a.textContent=(c.cat?"["+c.cat+"] ":"")+(c.ab||"Brak umiejętności.");nm.appendChild(a)}
+  const own=document.createElement("div");own.className="own";
+  if(need){const n=document.createElement("span");n.className="need";n.textContent=have?"":`+${(need-Math.min(o,need))*SCRAP[c.r]}`;n.title="Skrawki do scraftowania";own.appendChild(n)}
+  own.appendChild(stepper(id,need&&!have));
+  r.append(pv,nm,own);return r;
+}
+
+function renderDecks(){
+  facFilters($("#deckFilters"),"dfac",["ALL","NG","MO","NR","ST","SK","SY"]);
+  let list=DATA.decks.filter(d=>ui.dfac==="ALL"||d.f===ui.dfac).map(d=>({d,s:deckStats(d)}));
+  if(ui.sort==="rec")list.sort((a,b)=>b.s.score-a.s.score||a.d.t-b.d.t);
+  if(ui.sort==="tier")list.sort((a,b)=>a.d.t-b.d.t||b.s.pct-a.s.pct);
+  if(ui.sort==="scrap")list.sort((a,b)=>a.s.scrap-b.s.scrap||a.d.t-b.d.t);
+  const box=$("#decks");box.innerHTML="";box.classList.toggle("missonly",$("#missOnly").checked);
+  list.forEach(({d,s})=>{
+    const art=document.createElement("article");art.className="deck"+(ui.open.has(d.id)?" open":"");art.id="deck-"+d.id;art.style.setProperty("--fc",fcol(d.f));
+    const head=document.createElement("button");head.className="deck-head";head.setAttribute("aria-expanded",ui.open.has(d.id));
+    head.innerHTML=`<div class="deck-title"><span class="fchip">${FAC[d.f].n}</span><h3></h3><span class="tier t${d.t}">${TIER[d.t].l}</span></div>
+      <span class="chev" aria-hidden="true">›</span>
+      <div class="deck-meta"><span>Przywódca: <b class="ld"></b></span><span class="mono">${d.prov}/${d.limit} prowizji</span></div>
+      <div class="prog"><div class="bar"><i style="width:${Math.round(s.pct*100)}%"></i></div><span class="score">${s.have}/25${s.scrap?" · "+fmt(s.scrap)+" skr.":" · komplet"}</span></div>`;
+    head.querySelector("h3").textContent=d.name;head.querySelector(".ld").textContent=d.leader;
+    head.onclick=()=>{ui.open.has(d.id)?ui.open.delete(d.id):ui.open.add(d.id);renderDecks()};
+    art.appendChild(head);
+    if(ui.open.has(d.id)){
+      const body=document.createElement("div");body.className="deck-body";
+      const lb=document.createElement("div");lb.className="leaderbox";
+      lb.innerHTML=`<span class="label">Umiejętność przywódcy</span><b></b><span class="small"></span>`;
+      lb.querySelector("b").textContent=d.leader+" ("+d.leaderEn+")";lb.querySelector(".small").textContent=d.leaderAb;
+      body.appendChild(lb);
+      const sum=document.createElement("div");sum.className="sumrow";
+      sum.innerHTML=`<span>Kart: <b>25</b></span><span>Jednostek: <b>${d.units}</b></span><span>Prowizje: <b>${d.prov}/${d.limit}</b></span><span>Brakuje: <b>${s.missCards}</b> kart, <b>${fmt(s.scrap)}</b> skrawków</span>`;
+      body.appendChild(sum);
+      const cl=document.createElement("div");cl.className="clist";
+      [...d.cards].sort((a,b)=>CARD[b[0]].p-CARD[a[0]].p||CARD[a[0]].pl.localeCompare(CARD[b[0]].pl,"pl")).forEach(([id,n])=>cl.appendChild(cardRow(id,n)));
+      body.appendChild(cl);
+      const g=document.createElement("div");g.className="grid2";
+      g.innerHTML=`<div><div class="label">Plan gry</div><p class="note"></p></div><div><div class="label">Mulligan</div><p class="note"></p></div><div><div class="label">Rundy</div><p class="note"></p></div>`;
+      const ps=g.querySelectorAll("p");ps[0].textContent=d.plan;ps[1].textContent=d.mull;ps[2].textContent=d.rounds;
+      body.appendChild(g);
+      const btn=document.createElement("button");btn.className="btn ghost";btn.textContent="Kopiuj listę kart";
+      btn.onclick=()=>copyText(deckText(d),"Lista skopiowana");
+      body.appendChild(btn);
+      art.appendChild(body);
+    }
+    box.appendChild(art);
+  });
+}
+function deckText(d){return d.name+"\nPrzywódca: "+d.leader+"\n"+[...d.cards].sort((a,b)=>CARD[b[0]].p-CARD[a[0]].p).map(([id,n])=>`${n}× ${CARD[id].pl} (${CARD[id].p})`).join("\n")}
+
+function renderCollection(){
+  facFilters($("#colFilters"),"cfac",["ALL","NG","MO","NR","ST","SK","SY","NE"]);
+  const q=norm($("#cSearch").value),mode=$("#cOwn").value,scope=$("#cScope").value;
+  const list=DATA.cards.filter(c=>(ui.cfac==="ALL"||c.f===ui.cfac)&&(!q||norm(c.pl).includes(q)||norm(c.en).includes(q))&&(mode==="all"||(mode==="have")===((owned[c.id]||0)>0))&&(scope==="all"||INDECK[c.id]))
+    .sort((a,b)=>b.g-a.g||b.p-a.p||a.pl.localeCompare(b.pl,"pl"));
+  let tot=0,uniq=0;for(const k in owned){tot+=owned[k];uniq++}
+  $("#colCount").textContent=`${uniq} kart · ${tot} kopii`;
+  const box=$("#clist");box.innerHTML="";
+  if(!list.length){box.innerHTML='<p class="empty">Nic nie pasuje do filtrów.</p>';return}
+  const groups={};list.slice(0,ui.limit).forEach(c=>(groups[c.f]=groups[c.f]||[]).push(c));
+  ["NG","MO","NR","ST","SK","SY","NE"].forEach(f=>{
+    if(!groups[f])return;
+    const g=document.createElement("div");g.className="cgroup";g.style.setProperty("--fc",fcol(f));
+    const h=document.createElement("h3");h.textContent=FAC[f].n;g.appendChild(h);
+    const cl=document.createElement("div");cl.className="clist";groups[f].forEach(c=>cl.appendChild(cardRow(c.id,0)));g.appendChild(cl);
+    box.appendChild(g);
+  });
+  if(list.length>ui.limit){const b=document.createElement("button");b.className="btn ghost";b.textContent=`Pokaż więcej (${list.length-ui.limit})`;b.onclick=()=>{ui.limit+=300;renderCollection()};box.appendChild(b)}
+}
+
+function render(){
+  ["decki","kolekcja","poradnik"].forEach(v=>{document.getElementById("v-"+v).hidden=ui.view!==v;document.getElementById("tab-"+v).setAttribute("aria-selected",ui.view===v)});
+  renderRecs();
+  if(ui.view==="decki")renderDecks();
+  if(ui.view==="kolekcja")renderCollection();
+}
+function go(v){ui.view=v;try{if(location.hash!=="#"+v)history.replaceState(null,"","#"+v)}catch(e){}render();window.scrollTo({top:0})}
+
+// zapis
+function snap(){return {v:2,owned,updated:new Date().toISOString()}}
+function apply(s){owned={};if(s&&s.owned)for(const k in s.owned){const c=CARD[k],n=+s.owned[k];if(c&&n>0)owned[k]=Math.min(n,maxOf(c))}}
+function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(snap()))}catch(e){}}
+function loadLocal(){try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s)apply(s)}catch(e){}}
+let timer=null,saving=false,pending=false;
+function setOwned(id,n){if(n>0)owned[id]=n;else delete owned[id];changed()}
+function changed(){render();saveLocal();if(!docRef){setStatus("ok","Zapisano na tym urządzeniu");return}setStatus("warn","Zapisuję…");clearTimeout(timer);timer=setTimeout(flush,600)}
+async function flush(){if(saving){pending=true;return}saving=true;try{await docRef.set(snap());setStatus("ok","Zapisano")}catch(e){setStatus("warn","Zapisano tylko na tym urządzeniu")}saving=false;if(pending){pending=false;flush()}}
+
+function copyText(t,msg){
+  const done=()=>toast(msg);
+  try{navigator.clipboard.writeText(t).then(done,()=>fallback())}catch(e){fallback()}
+  function fallback(){const ta=$("#expTxt");ta.hidden=false;ta.value=t;ta.focus();ta.select();toast("Zaznaczyłem tekst – skopiuj go ręcznie")}
+}
+
+// zdarzenia
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>go(t.dataset.v));
+$("#sortSel").onchange=e=>{ui.sort=e.target.value;renderDecks()};
+$("#missOnly").onchange=renderDecks;
+let st=null;$("#cSearch").oninput=()=>{clearTimeout(st);st=setTimeout(()=>{ui.limit=200;renderCollection()},150)};
+$("#cOwn").onchange=renderCollection;$("#cScope").onchange=renderCollection;
+$("#impBtn").onclick=()=>{
+  const lines=$("#imp").value.split(/\n|;/).map(s=>s.trim()).filter(Boolean);let ok=0;const bad=[];
+  lines.forEach(l=>{let n=1,name=l,m=l.match(/^(.*\S)\s*[x×]\s*([12])$/i);
+    if(m){name=m[1];n=+m[2]}else if((m=l.match(/^([12])\s*[x×]?\s+(.+)$/i))){n=+m[1];name=m[2]}
+    const id=BYNAME[norm(name)];if(!id){bad.push(name);return}const c=CARD[id];owned[id]=Math.min(Math.max(owned[id]||0,n),maxOf(c));ok++});
+  $("#impMsg").textContent=`Dodane: ${ok}`+(bad.length?` · nie rozpoznano: ${bad.slice(0,5).join(", ")}${bad.length>5?"…":""}`:"");
+  if(ok){$("#imp").value="";changed()}
+};
+$("#expBtn").onclick=()=>copyText(JSON.stringify(snap()),"Kopia skopiowana");
+$("#resetBtn").onclick=function(){if(this.dataset.armed){owned={};changed();this.textContent="Wyczyść kolekcję";delete this.dataset.armed;toast("Kolekcja wyczyszczona")}else{this.dataset.armed=1;this.textContent="Na pewno? Kliknij jeszcze raz";setTimeout(()=>{if(this.dataset.armed){delete this.dataset.armed;this.textContent="Wyczyść kolekcję"}},4000)}};
+// import kopii: wklejenie JSON w pole importu
+$("#imp").addEventListener("paste",e=>{const t=(e.clipboardData||{}).getData?e.clipboardData.getData("text"):"";if(t&&t.trim().startsWith("{")){e.preventDefault();try{const s=JSON.parse(t);apply(s);changed();$("#impMsg").textContent="Wczytano kopię zapasową"}catch(x){$("#impMsg").textContent="To nie jest poprawna kopia"}}});
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["decki","kolekcja","poradnik"].includes(h)&&h!==ui.view){ui.view=h;render()}});
+
+// PWA (GitHub Pages)
+const standalonePage=!/claude\.ai|claudeusercontent|anthropic/.test(location.hostname)&&location.protocol.startsWith("http");
+if(standalonePage){
+  const l=document.createElement("link");l.rel="manifest";l.href="manifest.webmanifest";document.head.appendChild(l);
+  const ic=document.createElement("link");ic.rel="apple-touch-icon";ic.href="icons/icon-192.png";document.head.appendChild(ic);
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+  const dl=$("#dlBtn");dl.hidden=false;dl.onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(snap())],{type:"application/json"}));a.download="gwint-kolekcja.json";a.click()};
+}
+
+// start
+const h0=location.hash.slice(1);if(["decki","kolekcja","poradnik"].includes(h0))ui.view=h0;
+loadLocal();render();setStatus("ok","Zapis na tym urządzeniu");
+(async()=>{
+  if(standalonePage||!window.claude||!window.claude.use)return;
+  let d=null;try{d=await window.claude.use("db")}catch(e){}
+  if(!d)return;db=d;docRef=db.doc("gwint/kolekcja2");let first=true;
+  docRef.onSnapshot(s=>{
+    if(s.exists){if(s.metadata.hasPendingWrites)return;apply(s.data());saveLocal();render();setStatus("ok","Zapisano na koncie")}
+    else if(first){if(Object.keys(owned).length)flush();else setStatus("ok","Zapis na koncie gotowy")}
+    first=false;
+  },()=>setStatus("warn","Zapis tylko na tym urządzeniu"));
+})();
+})();
+</script>
