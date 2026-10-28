@@ -67,7 +67,7 @@ DECKS = [
          "Red Riders":2,"Wild Hunt Rider":2,"Wild Hunt Navigator":2,"Naglfar Crew":2,"Wild Hunt Bruiser":2,
          "Wild Hunt Warrior":2,"Aen Elle Aristocrat":2,"Wild Hunt Hound":1},
   plan="Mróz na rzędach rywala, a jednostki Dzikiego Gonu z niego korzystają. Najłatwiejszy deck na start. Królowa Zimy wchodzi sama, gdy oba rzędy rywala mają Mróz. Caranthir: Złote dziecko rośnie z obrażeń od Mrozu.",
-  mull="Odrzuć Królową Zimy, jeśli wejdzie sama z talii. Odrzucaj nadmiar Mrozu bez jednostek Gonu.",
+  mull="Królową Zimy z ręki odrzuć: z talii wejdzie sama i za darmo. Odrzucaj nadmiar Mrozu bez jednostek Gonu.",
   rounds="R1: ustaw Mróz, nie wydawaj wszystkich efektów. R3: Caranthir i Krwawa miazga jako finisz."),
  dict(id="mob", f="NR", t=1, name="Mobilizacja: Złoty Nekker", leader="Mobilization",
   cards={"Golden Nekker":1,"Ciri: Nova":1,"Trollololo":1,"Ronvid the Incessant":1,"Black Rayla":1,
@@ -197,6 +197,6 @@ DECKS += [
          "Naglfar Crew":2,"Wild Hunt Bruiser":2,"Wild Hunt Warrior":2,"Aen Elle Aristocrat":2,
          "Wild Hunt Hound":2,"Aen Elle Slave Trader":2},
   plan="Mróz na rzędach rywala, a Dziki Gon z niego korzysta. Najprostszy deck do nauki. Królowa Zimy wchodzi sama, gdy oba rzędy rywala mają Mróz, a Caranthir rośnie z obrażeń od Mrozu.",
-  mull="Odrzuć Królową Zimy, jeśli wejdzie sama z talii. Nie trzymaj Mrozu bez jednostek Gonu.",
+  mull="Królową Zimy z ręki odrzuć: z talii wejdzie sama i za darmo. Nie trzymaj Mrozu bez jednostek Gonu.",
   rounds="R1: ustaw Mróz i nie wydawaj wszystkiego. R3: Caranthir na koniec."),
 ]

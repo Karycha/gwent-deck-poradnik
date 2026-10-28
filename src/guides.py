@@ -84,7 +84,7 @@ CARD_TIPS = {
  "Hideous Feast": ("WYP", "3 obrażenia wrogowi i +3 sobie."),
  "Undying Thirst": ("SIL", "Krwawienie 6: zasila Fledery i Garkainy przez 6 tur."),
  # --- Potwory: Białe Zimno ---
- "Winter Queen": ("FIN", "Nie dobieraj jej ręcznie: wejdzie sama, gdy oba rzędy rywala mają Mróz."),
+ "Winter Queen": ("SIL", "Wchodzi sama z talii na koniec tury, w której oba rzędy rywala mają Mróz, więc po Ard Gaeth wyskoczy od razu. To darmowa karta i odchudzenie talii, więc w R1 to w porządku. Chcesz ją na R3? W R1 dawaj Mróz tylko na jeden rząd. Z Lojalnością na koniec rundy rośnie za każdą turę Mrozu u rywala."),
  "Ard Gaeth": ("SIL", "Mróz na oba rzędy na 3 tury. Echo, więc wraca w kolejnej rundzie."),
  "Caranthir: Golden Child": ("FIN", "Rośnie z obrażeń Mrozu w ręce. Trzymaj na koniec R3."),
  "Auberon: King": ("WYP", "Tworzy losową jednostkę Gonu i ewoluuje w kolejnych rundach, więc lepiej trzymać na R3."),
@@ -126,7 +126,7 @@ DECK_STEPS = {
             "Leader (Woń krwi) daje krwawienie 3 trzy razy, potem Ekimmę. Używaj go od początku.",
             "Wolumin Nekromanty graj wcześnie w długiej rundzie: każdy brąz przyzwie kopię z cmentarza.",
             "R3: Katakan, Yghern przy pełnej ręce, Geralt i Pasożyt na największe zagrożenie rywala."],
- "b-frost": ["R1: Mróz na oba rzędy (Ard Gaeth albo Czerwoni Jeźdźcy). Królowa Zimy wejdzie wtedy sama z talii.",
+ "b-frost": ["R1: Mróz na jeden rząd (Czerwoni Jeźdźcy na 4 tury albo Załoga Naglfara) i jednostki Gonu. Mróz na oba rzędy (Ard Gaeth) od razu wyciąga Królową Zimy z talii, więc zrób to dopiero, gdy chcesz ją wystawić.",
              "Leader przesuwa wroga i daje Mróz. Używaj, żeby trafić w jednostkę spoza Mrozu.",
              "Nie wydawaj całego Mrozu w R1: Ard Gaeth ma Echo i wróci w kolejnej rundzie.",
              "R3: Nawigator Gonu przy długim Mrozie, a Caranthir: Złote dziecko na sam koniec."],
