@@ -108,6 +108,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
 .empty{color:var(--muted);padding:12px 0}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:.9rem;z-index:20}
 .missonly .crow.have{display:none}
+.updbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:10px 14px;font-weight:700}
 .quest{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:8px;background:var(--surface)}
 .quest.done{opacity:.6}
 .qhead{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start}
@@ -121,11 +122,13 @@ textarea{width:100%;min-height:96px;resize:vertical}
 </style><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><div class="wrap">
   <header class="top">
     <div>
-      <div class="label">Gwint · meta po Radzie z 1.10.2026</div>
+      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 1.5</span></div>
       <h1>Warsztat Gwinta</h1>
     </div>
     <div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div>
   </header>
+
+  <div class="updbar" id="updbar" hidden role="status"><span id="updtxt">Jest nowa wersja.</span><button class="btn" id="updBtn">Aktualizuj</button></div>
 
   <section class="panel" aria-labelledby="rech">
     <div class="row" style="justify-content:space-between">
@@ -258,6 +261,16 @@ textarea{width:100%;min-height:96px;resize:vertical}
         <li><b>Pył meteorytowy</b> to tylko animowane wersje kart. Nie zwiększa siły.</li>
         <li>Zagraj chociaż jeden mecz rankingowy w sezonie. Nagroda w kluczach przychodzi po zalogowaniu w następnym.</li>
         <li>Nie mieluj masowo innych frakcji. Mielenia i craftu nie da się cofnąć.</li>
+      </ul>
+    </section>
+    <section>
+      <h2>Co nowego</h2>
+      <ul class="small">
+        <li><b>1.5</b> Numer wersji i przycisk „Aktualizuj”, gdy na GitHubie jest nowsza wersja.</li>
+        <li><b>1.4</b> Zakładka Zadania: rozpoznawanie zadań z gry i talie pod zadania z Twoich kart.</li>
+        <li><b>1.3</b> Budżetowe decki z posiadanych kart.</li>
+        <li><b>1.2</b> Import kolekcji z playgwent.com, koszty kart prosto z gry.</li>
+        <li><b>1.1</b> Polskie nazwy kart i pełne decki po 25 kart.</li>
       </ul>
     </section>
     <section>
@@ -471,7 +484,14 @@ const standalonePage=!/claude\.ai|claudeusercontent|anthropic/.test(location.hos
 if(standalonePage){
   const l=document.createElement("link");l.rel="manifest";l.href="manifest.webmanifest";document.head.appendChild(l);
   const ic=document.createElement("link");ic.rel="apple-touch-icon";ic.href="icons/icon-192.png";document.head.appendChild(ic);
-  if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{});
+  const APPV="1.5";
+  let swReg=null;
+  if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{swReg=r}).catch(()=>{});
+  const newer=(a,b)=>{const x=a.split(".").map(Number),y=b.split(".").map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0)}return false};
+  async function checkUpdate(){try{const r=await fetch("version.json?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const j=await r.json();
+    if(j.version&&newer(j.version,APPV)){$("#updtxt").textContent=`Jest nowa wersja ${j.version} (masz ${APPV}).`;$("#updbar").hidden=false}}catch(e){}}
+  $("#updBtn").onclick=async()=>{$("#updBtn").textContent="Aktualizuję…";try{if(swReg)await swReg.update();const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)))}catch(e){}location.reload()};
+  checkUpdate();document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkUpdate()});
   const dl=$("#dlBtn");dl.hidden=false;dl.onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(snap())],{type:"application/json"}));a.download="gwint-kolekcja.json";a.click()};
 }
 
