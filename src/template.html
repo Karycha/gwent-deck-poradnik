@@ -115,6 +115,12 @@ textarea{width:100%;min-height:96px;resize:vertical}
 .empty{color:var(--muted);padding:12px 0}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:.9rem;z-index:20}
 .missonly .crow.have{display:none}
+.tip{font-size:.82rem;line-height:1.35;margin-top:3px;color:var(--ink)}
+.role{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:4px;border:1px solid currentColor;vertical-align:1px}
+.r-R1{color:var(--nr)} .r-SIL{color:var(--ok)} .r-ODP{color:var(--miss)} .r-COMBO{color:var(--sk)} .r-FIN{color:var(--accent)} .r-WYP{color:var(--muted)}
+.rolehead{padding:10px 2px 4px;border-bottom:1px solid var(--line)}
+.steps{background:var(--sunk);border-radius:8px;padding:10px 12px;display:grid;gap:6px}
+.steps ol{margin:0;padding-left:1.2em;display:grid;gap:4px;font-size:.92rem}
 .updbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:10px 14px;font-weight:700}
 .quest{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:8px;background:var(--surface)}
 .quest.done{opacity:.6}
@@ -278,6 +284,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>1.7</b> Poradnik w każdej talii: rola i wskazówka przy każdej karcie, widok „wg kolejności gry” i plan krok po kroku.</li>
         <li><b>1.6</b> Kod kolekcji do przenoszenia między telefonem a komputerem. Gdy kolekcja jest pusta, apka podpowiada, jak ją wczytać.</li>
         <li><b>1.5</b> Numer wersji i przycisk „Aktualizuj”, gdy na GitHubie jest nowsza wersja.</li>
         <li><b>1.4</b> Zakładka Zadania: rozpoznawanie zadań z gry i talie pod zadania z Twoich kart.</li>
@@ -357,7 +364,8 @@ function stepper(id,miss){
   for(let i=0;i<=m;i++){const b=document.createElement("button");b.textContent=i;b.setAttribute("aria-pressed",o===i);b.title=`Mam ${i}`;b.onclick=e=>{e.stopPropagation();setOwned(id,i)};w.appendChild(b)}
   return w;
 }
-function cardRow(id,need){
+const ROLE={R1:["Otwarcie","Graj w R1 albo na początku rundy"],SIL:["Silnik","Graj wcześnie, żeby zebrał wartość"],ODP:["Odpowiedź","Trzymaj na zagrożenie rywala"],COMBO:["Combo","Graj w odpowiednim momencie"],FIN:["Finisz","Trzymaj na R3"],WYP:["Wypełniacz","Tempo, kiedy potrzebujesz punktów"]};
+function cardRow(id,need,tip){
   const c=CARD[id],o=owned[id]||0,have=need?o>=need:o>0;
   const r=document.createElement("div");r.className="crow "+(have?"have":"miss");
   const pv=document.createElement("div");pv.className="pv "+(c.g?"g":"b");pv.textContent=c.p;pv.title=(c.g?"złota":"brązowa")+", koszt "+c.p;
@@ -368,6 +376,7 @@ function cardRow(id,need){
   bt.querySelector(".s").append(`${RAR[c.r]} · ${TYPE[c.t]}${c.t==="J"?" "+c.pw:""}${c.en!==c.pl?" · "+c.en:""}`);
   bt.onclick=()=>{ui.abOpen.has(id)?ui.abOpen.delete(id):ui.abOpen.add(id);render()};
   nm.appendChild(bt);
+  if(tip){const t=document.createElement("div");t.className="tip";const rc=document.createElement("span");rc.className="role r-"+tip[0];rc.textContent=ROLE[tip[0]][0];rc.title=ROLE[tip[0]][1];t.append(rc," ",tip[1]);nm.appendChild(t)}
   if(ui.abOpen.has(id)){const a=document.createElement("div");a.className="ab";a.textContent=(c.cat?"["+c.cat+"] ":"")+(c.ab||"Brak umiejętności.");nm.appendChild(a)}
   const own=document.createElement("div");own.className="own";
   if(need){const n=document.createElement("span");n.className="need";n.textContent=have?"":`+${(need-Math.min(o,need))*SCRAP[c.r]}`;n.title="Skrawki do scraftowania";own.appendChild(n)}
@@ -402,7 +411,16 @@ function renderDecks(){
       sum.innerHTML=`<span>Kart: <b>25</b></span><span>Jednostek: <b>${d.units}</b></span><span>Prowizje: <b>${d.prov}/${d.limit}</b></span><span>Brakuje: <b>${s.missCards}</b> kart, <b>${fmt(s.scrap)}</b> skrawków</span>`;
       body.appendChild(sum);
       const cl=document.createElement("div");cl.className="clist";
-      [...d.cards].sort((a,b)=>CARD[b[0]].p-CARD[a[0]].p||CARD[a[0]].pl.localeCompare(CARD[b[0]].pl,"pl")).forEach(([id,n])=>cl.appendChild(cardRow(id,n)));
+      if(d.steps&&d.steps.length){const sb=document.createElement("div");sb.className="steps";sb.innerHTML='<span class="label">Jak grać krok po kroku</span><ol></ol>';d.steps.forEach(x=>{const li=document.createElement("li");li.textContent=x;sb.querySelector("ol").appendChild(li)});body.appendChild(sb)}
+      const view=ui.byRole&&ui.byRole[d.id];
+      const tg=document.createElement("div");tg.className="row small";tg.innerHTML=`<span class="muted">Lista kart:</span>`;
+      [["prov","wg kosztu"],["role","wg kolejności gry"]].forEach(([k,l])=>{const b=document.createElement("button");b.className="fbtn";b.textContent=l;b.setAttribute("aria-pressed",(view?"role":"prov")===k);b.onclick=()=>{ui.byRole=ui.byRole||{};ui.byRole[d.id]=k==="role";renderDecks()};tg.appendChild(b)});
+      body.appendChild(tg);
+      const ORD={R1:0,SIL:1,COMBO:2,WYP:3,ODP:4,FIN:5};
+      const tipOf=id=>(d.tips&&d.tips[id])||null;
+      const sorted=[...d.cards].sort(view?((a,b)=>(ORD[(tipOf(a[0])||["WYP"])[0]]-ORD[(tipOf(b[0])||["WYP"])[0]])||CARD[a[0]].p-CARD[b[0]].p):((a,b)=>CARD[b[0]].p-CARD[a[0]].p||CARD[a[0]].pl.localeCompare(CARD[b[0]].pl,"pl")));
+      let lastRole=null;
+      sorted.forEach(([id,n])=>{const t=tipOf(id);if(view&&t&&t[0]!==lastRole){lastRole=t[0];const h=document.createElement("div");h.className="rolehead";h.innerHTML=`<span class="role r-${t[0]}">${ROLE[t[0]][0]}</span> <span class="small muted">${ROLE[t[0]][1]}</span>`;cl.appendChild(h)}cl.appendChild(cardRow(id,n,t))});
       body.appendChild(cl);
       const g=document.createElement("div");g.className="grid2";
       g.innerHTML=`<div><div class="label">Plan gry</div><p class="note"></p></div><div><div class="label">Mulligan</div><p class="note"></p></div><div><div class="label">Rundy</div><p class="note"></p></div>`;

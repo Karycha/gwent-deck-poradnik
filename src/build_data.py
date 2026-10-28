@@ -2,6 +2,7 @@
 import json, re, sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 from decks import DECKS, PROV_2026, POWER_2026, LEADER_BONUS_2026
+from guides import CARD_TIPS, DECK_STEPS, auto_tip
 
 SRC = sys.argv[1]
 OUT = sys.argv[2]
@@ -72,7 +73,8 @@ for d in DECKS:
     print(f"{d['id']:8} {n} kart, {units} jedn., {total}/{limit} prow." + (f", Taktyki {tactics}" if d['leader']=='Enslave' else ""))
     out_decks.append(dict(id=d["id"], f=d["f"], t=d["t"], b=1 if d.get("budget") else 0, name=d["name"], leader=lead["pl"], leaderEn=d["leader"],
                           leaderAb=lead["ab"], limit=limit, prov=total, units=units, cards=lst,
-                          plan=d["plan"], mull=d["mull"], rounds=d["rounds"]))
+                          plan=d["plan"], mull=d["mull"], rounds=d["rounds"], steps=DECK_STEPS.get(d["id"], []),
+                          tips={cid: list(CARD_TIPS.get(cards[cid]["en"]) or auto_tip(cards[cid])) for cid,_ in lst}))
 
 # Golden Nekker: brak kart 10+ poza wyjątkami
 for d in out_decks:
