@@ -22,7 +22,7 @@ for v in db.values():
     if not v.get("collectible") or v["type"] == "Stratagem":
         continue
     cid = v["cardId"]
-    prov = PROV_2026.get(en, v["provision"])
+    prov = PROV_2026.get(en, v["provision"])  # nadpisywane niżej danymi na żywo
     c = dict(id=cid, en=en, pl=pl, f=FAC[v["faction"]], g=1 if v["color"]=="Gold" else 0,
              p=prov, pw=POWER_2026.get(en, v.get("power",0)), t=TYPE_PL.get(v["type"],"J"),
              r=v["rarity"][0], cat=(v.get("categories") or {}).get("pl-PL",""),
@@ -30,7 +30,22 @@ for v in db.values():
     cards[cid] = c
     by_en.setdefault(en, []).append(cid)
 
-for k in LEADER_BONUS_2026: leaders[k]["bonus"] = LEADER_BONUS_2026[k]
+# Aktualne dane z playgwent.com (po ostatniej Radzie Balansu) nadpisują bazę
+LIVE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "live")
+RAR = {"5":"C","15":"R","20":"E","25":"L"}
+live_n = 0
+if os.path.exists(os.path.join(LIVE, "cards.txt")):
+    for row in open(os.path.join(LIVE, "cards.txt")).read().strip().split(";"):
+        cid, prov, pw, arm, typ, rar, fac, grp, craft = row.split(",")
+        if cid in cards:
+            c = cards[cid]; c["p"] = int(prov); c["pw"] = int(pw); c["r"] = RAR.get(rar, c["r"]); live_n += 1
+    lid = {v["cardId"]: v["name"]["en-US"] for v in db.values() if v["type"] == "Ability"}
+    for kv in open(os.path.join(LIVE, "leaders.txt")).read().strip().split(","):
+        k, b = kv.split(":")
+        if k in lid: leaders[lid[k]]["bonus"] = int(b)
+    print("dane na żywo z playgwent.com:", live_n, "kart")
+else:
+    for k in LEADER_BONUS_2026: leaders[k]["bonus"] = LEADER_BONUS_2026[k]
 
 errors = []
 out_decks = []

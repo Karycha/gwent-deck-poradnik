@@ -177,8 +177,18 @@ textarea{width:100%;min-height:96px;resize:vertical}
       <div id="clist"></div>
     </div>
     <div class="panel">
+      <h2>Import z playgwent.com</h2>
+      <ol class="small" style="margin:0;padding-left:1.2em;display:grid;gap:4px">
+        <li>Na komputerze otwórz <b>playgwent.com/pl/decks/builder</b> i zaloguj się.</li>
+        <li>Naciśnij Ctrl+Shift+I, wejdź w <b>Console</b>, wklej kod poniżej i Enter.</li>
+        <li>Wklej skopiowany tekst w pole „Szybki import” niżej i kliknij „Dodaj do kolekcji”. Zastąpi to obecną kolekcję.</li>
+      </ol>
+      <pre class="mono small" style="margin:0;background:var(--sunk);padding:8px 10px;border-radius:8px;overflow-x:auto;white-space:pre" id="snip">copy(JSON.stringify({user_cards:JSON.parse(document.getElementById('root').dataset.state).user_cards}))</pre>
+      <div class="row"><button class="btn ghost" id="snipBtn">Kopiuj kod</button></div>
+    </div>
+    <div class="panel">
       <h2>Szybki import</h2>
-      <p class="small muted">Wklej nazwy kart (polskie albo angielskie), po jednej w linii. Dopisz „x2”, jeśli masz dwie kopie brązowej karty.</p>
+      <p class="small muted">Wklej nazwy kart (polskie albo angielskie), po jednej w linii, z dopiskiem „x2” przy dwóch kopiach. Tu wklejasz też tekst z playgwent.com albo kopię zapasową.</p>
       <textarea id="imp" placeholder="Artorius Vigo&#10;Poselstwo x2&#10;Agentka księżnej x2"></textarea>
       <div class="row"><button class="btn" id="impBtn">Dodaj do kolekcji</button><span class="small muted" id="impMsg"></span></div>
     </div>
@@ -236,7 +246,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     </section>
     <section>
       <h2>Skąd te decki</h2>
-      <p class="note small">Archetypy i ich siłę wziąłem z przeglądów Rady Balansu na leriohub.com (wrzesień i październik 2026, decki z Pro Ladder 2.5k+ fMMR). Pełne listy po 25 kart złożyłem sam pod te archetypy z bazy kart gwent.one, z polskimi nazwami z gry. Każdą sprawdziłem: 25 kart, co najmniej 13 jednostek, limity kopii i prowizji. Koszty pochodzą z ostatniej publicznej bazy kart plus znanych zmian z września i października 2026, więc ostatecznie sprawdź licznik w kreatorze.</p>
+      <p class="note small">Archetypy i ich siłę wziąłem z przeglądów Rady Balansu na leriohub.com (wrzesień i październik 2026, decki z Pro Ladder 2.5k+ fMMR). Pełne listy po 25 kart złożyłem sam pod te archetypy z bazy kart gwent.one, z polskimi nazwami z gry. Każdą sprawdziłem: 25 kart, co najmniej 13 jednostek, limity kopii i prowizji. Koszty werbunku, siła i rzadkość kart pochodzą prosto z playgwent.com (stan z 28.10.2026, po Radzie z 1.10). Po kolejnej Radzie Balansu mogą się przesunąć o punkt, więc ostatecznie sprawdź licznik w kreatorze.</p>
     </section>
   </section>
 </div>
@@ -415,7 +425,16 @@ $("#sortSel").onchange=e=>{ui.sort=e.target.value;renderDecks()};
 $("#missOnly").onchange=renderDecks;
 let st=null;$("#cSearch").oninput=()=>{clearTimeout(st);st=setTimeout(()=>{ui.limit=200;renderCollection()},150)};
 $("#cOwn").onchange=renderCollection;$("#cScope").onchange=renderCollection;
+function importJSON(t){
+  let o;try{o=JSON.parse(t)}catch(e){return null}
+  const ids=Array.isArray(o)?o:(o&&Array.isArray(o.user_cards)?o.user_cards:null);
+  if(ids){const cnt={};ids.forEach(x=>{x=String(x);cnt[x]=(cnt[x]||0)+1});owned={};let n=0;for(const k in cnt){const c=CARD[k];if(c){owned[k]=Math.min(cnt[k],maxOf(c));n++}}changed();return `Wczytano kolekcję z playgwent.com: ${n} kart`}
+  if(o&&o.owned){apply(o);changed();return "Wczytano kopię zapasową"}
+  return "Nie rozpoznałem formatu"
+}
 $("#impBtn").onclick=()=>{
+  const raw=$("#imp").value.trim();
+  if(raw.startsWith("{")||raw.startsWith("[")){const m=importJSON(raw);$("#impMsg").textContent=m||"To nie jest poprawny JSON";if(m&&!m.startsWith("Nie"))$("#imp").value="";return}
   const lines=$("#imp").value.split(/\n|;/).map(s=>s.trim()).filter(Boolean);let ok=0;const bad=[];
   lines.forEach(l=>{let n=1,name=l,m=l.match(/^(.*\S)\s*[x×]\s*([12])$/i);
     if(m){name=m[1];n=+m[2]}else if((m=l.match(/^([12])\s*[x×]?\s+(.+)$/i))){n=+m[1];name=m[2]}
@@ -423,10 +442,11 @@ $("#impBtn").onclick=()=>{
   $("#impMsg").textContent=`Dodane: ${ok}`+(bad.length?` · nie rozpoznano: ${bad.slice(0,5).join(", ")}${bad.length>5?"…":""}`:"");
   if(ok){$("#imp").value="";changed()}
 };
+$("#snipBtn").onclick=()=>copyText($("#snip").textContent,"Kod skopiowany");
 $("#expBtn").onclick=()=>copyText(JSON.stringify(snap()),"Kopia skopiowana");
 $("#resetBtn").onclick=function(){if(this.dataset.armed){owned={};changed();this.textContent="Wyczyść kolekcję";delete this.dataset.armed;toast("Kolekcja wyczyszczona")}else{this.dataset.armed=1;this.textContent="Na pewno? Kliknij jeszcze raz";setTimeout(()=>{if(this.dataset.armed){delete this.dataset.armed;this.textContent="Wyczyść kolekcję"}},4000)}};
 // import kopii: wklejenie JSON w pole importu
-$("#imp").addEventListener("paste",e=>{const t=(e.clipboardData||{}).getData?e.clipboardData.getData("text"):"";if(t&&t.trim().startsWith("{")){e.preventDefault();try{const s=JSON.parse(t);apply(s);changed();$("#impMsg").textContent="Wczytano kopię zapasową"}catch(x){$("#impMsg").textContent="To nie jest poprawna kopia"}}});
+
 window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["decki","kolekcja","poradnik"].includes(h)&&h!==ui.view){ui.view=h;render()}});
 
 // PWA (GitHub Pages)

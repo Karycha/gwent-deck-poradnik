@@ -25,7 +25,7 @@ DECKS = [
   cards={"Hefty Helge":1,"Stefan Skellen":1,"Joachim de Wett":1,"Emhyr var Emreis":1,"Menno Coehoorn":1,
          "Battle Stations!":1,"War Council":1,"Coup de Grâce":1,"Fire Scorpion":2,"Battle Preparation":2,
          "Buhurt":1,"Amnesty":1,"Assassination":2,"Coated Weapons":2,"Tourney Joust":1,
-         "Magne Division":2,"Venendal Elite":2,"Impera Enforcers":2},
+         "Magne Division":2,"Venendal Elite":2,"Menagerie Keeper":2},
   plan="Każda Taktyka ładuje Grubą Helgę i Ognistego Skorpiona, więc zamieniasz Taktyki w obrażenia. Narada wojenna i Na Stanowiska! ciągną kolejne karty, Menno gra Taktykę z talii, a Dywizja Magne Taktykę z ręki. Emhyr zagrywa brązowego żołnierza i dobiera kartę.",
   mull="Trzymaj Helgę i Skorpiona z co najmniej dwiema Taktykami. Odrzucaj drugą Dywizję Magne bez Taktyki w ręce.",
   rounds="R1: Skorpion + Taktyki, kontroluj silniki rywala. R2: Joachim i Emhyr jako mocne tempo. R3: Helga z naładowanymi ładunkami i Skellen."),
