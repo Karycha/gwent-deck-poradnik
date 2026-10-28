@@ -112,6 +112,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
 .role{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:1px 6px;border-radius:4px;border:1px solid currentColor;vertical-align:1px}
 .r-R1{color:var(--nr)} .r-SIL{color:var(--ok)} .r-ODP{color:var(--miss)} .r-COMBO{color:var(--sk)} .r-FIN{color:var(--accent)} .r-WYP{color:var(--muted)}
 .rolehead{padding:10px 2px 4px;border-bottom:1px solid var(--line)}
+@media (max-width:520px){.crow{grid-template-columns:2.2rem 1fr}.crow .own{grid-column:2;justify-self:start}}
 .steps{background:var(--sunk);border-radius:8px;padding:10px 12px;display:grid;gap:6px}
 .steps ol{margin:0;padding-left:1.2em;display:grid;gap:4px;font-size:.92rem}
 .updbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);padding:10px 14px;font-weight:700}
@@ -128,7 +129,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
 </style><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><div class="wrap">
   <header class="top">
     <div>
-      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 1.7</span></div>
+      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 1.7.1</span></div>
       <h1>Warsztat Gwinta</h1>
     </div>
     <div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div>
@@ -512,7 +513,7 @@ const standalonePage=!/claude\.ai|claudeusercontent|anthropic/.test(location.hos
 if(standalonePage){
   const l=document.createElement("link");l.rel="manifest";l.href="manifest.webmanifest";document.head.appendChild(l);
   const ic=document.createElement("link");ic.rel="apple-touch-icon";ic.href="icons/icon-192.png";document.head.appendChild(ic);
-  const APPV="1.7";
+  const APPV="1.7.1";
   let swReg=null;
   if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{swReg=r}).catch(()=>{});
   const newer=(a,b)=>{const x=a.split(".").map(Number),y=b.split(".").map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0)}return false};
