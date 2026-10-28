@@ -1,6 +1,7 @@
 // ===== ZADANIA =====
 const SETNAME={pod:"Podstawowy",nov:"Novigrad",rop:"Przeklęta Ropucha",krw:"Krwawa Klątwa",zel:"Żelazny Osąd",cen:"Cena Władzy",uro:"Uroboros",lus:"Pan Lusterko",wie:"Droga Wiedźmina",ofi:"Kupcy z Ofiru",woj:"Wojna Krwi",inne:"Inne"};
 const FACRX=[["ST",/scoia/i],["NG",/nilfgaard/i],["MO",/potwor/i],["NR",/królestw|północ/i],["SK",/skellige/i],["SY",/syndykat/i]];
+const plZad=n=>n===1?"zadanie":(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?"zadania":"zadań";
 const KWS=["Adrenalina","Zasadzka","Pancerz","Asymilacja","Wygnaj","Barykada","Szał","Krwawienie","Więź","Nagroda","Ładunek","Starcie","Spisek","Pochłoń","Odnowienie","Utwórz","Załoga","Śmiertelny cios","Zemsta","Obrońca","Rozmieszczenie","Lojalność","Odrzuć","Zdrada","Dominacja","Fatum","Kradzież","Pojedynek","Echo","Wrażliwość","Opłata","Flanka","Formacja","Łaska","Harmonia","Uzdrów","Kapitał","Odporność","Inicjatywa","Amok","Inspiracja","Zastraszenie","Rodowód","Zablokuj","Potęga","Rozkaz","Cierpliwość","Trucizna","Drapieżnik","Zysk","Oczyść","Wytrzymałość","Zaopatrzenie","Ujawnij","Skaza","Sabat","Przechwycenie","Tarcza","Stwórz","Uruchomienie","Szpieg","Wezwij","Symbioza","Pokrzepienie","Odliczanie","Haracz","Zasłona","Weteran","Występek","Witalność","Zapał"];
 const SETRX=[["pod",/podstawow|startow/i],["nov",/novigrad/i],["rop",/ropuch/i],["krw",/krwaw\S* klątw/i],["zel",/żelazn/i],["cen",/cen\S* władzy/i],["uro",/uroboros/i],["lus",/lusterk/i],["wie",/drog\S* wiedźmin/i],["ofi",/ofir/i],["woj",/wojn\S* krwi/i]];
 const CATRX=[["Zaklęcie",/zaklę/i],["Taktyka",/taktyk/i],["Alchemia",/alchemi/i],["Bomba",/bomb/i],["Rejza",/rejz/i],["Zbrodnia",/zbrodni/i],["Natura",/natur/i],["Organiczne",/organiczn/i],["Działania Wojenne",/działa\S* wojenn/i],["Żołnierz",/żołnierz/i],["Wiedźmin",/wiedźmin/i],["Smok",/smok/i],["Krasnolud",/krasnolud/i],["Elf",/(^|\s)elf/i],["Driada",/driad/i],["Wampir",/wampir/i],["Insektoid",/insektoid/i],["Kultysta",/kultyst/i],["Korsarz",/korsarz/i],["Wojownik",/wojownik/i],["Okręt",/okręt/i],["Maszyna",/maszyn/i],["Czarodziej",/czarodziej/i],["Bestia",/besti/i],["Ogroid",/ogroid/i],["Relikt",/relikt/i],["Rycerz",/rycerz/i],["Agent",/agent/i],["Arystokrata",/arystokrat/i],["Pułapka",/pułapk/i],["Lokalizacja",/lokalizacj/i]];
@@ -165,7 +166,7 @@ async function ocrFiles(files){
     for(const f of files){const img=await createImageBitmap(f);const r=await w.recognize(prepCanvas(img));ocrFound.push(...questsFromText(r.data.text))}
     await w.terminate();
     const have=new Set(quests.map(q=>qDesc(q)));ocrFound=ocrFound.filter((q,i,a)=>!have.has(qDesc(q))&&a.findIndex(x=>qDesc(x)===qDesc(q))===i);
-    st.textContent=ocrFound.length?`Znalazłem ${ocrFound.length} zadań. Sprawdź i dodaj:`:"Nie znalazłem nowych zadań na screenie. Spróbuj przyciąć screena do samych zadań.";
+    st.textContent=ocrFound.length?`Znalazłem ${ocrFound.length} ${plZad(ocrFound.length)}. Sprawdź i dodaj:`:"Nie znalazłem nowych zadań na screenie. Spróbuj przyciąć screena do samych zadań.";
     renderOcr();
   }catch(e){st.textContent="Nie udało się odczytać screena. Sprawdź internet albo wklej treść zadań ręcznie."}
 }
@@ -173,7 +174,7 @@ function renderOcr(){const box=$("#ocrList");box.innerHTML="";if(!ocrFound.lengt
   ocrFound.forEach((q,i)=>{const l=document.createElement("label");l.className="ocrrow";const cb=document.createElement("input");cb.type="checkbox";cb.checked=true;cb.id="ocr-"+i;cb.dataset.i=i;const sp=document.createElement("span");sp.textContent=qDesc(q)+(q.prog?` (postęp ${q.prog}/${q.n})`:"");l.append(cb,sp);box.appendChild(l)});$("#ocrAdd").hidden=false}
 $("#ocrBtn").onclick=()=>$("#ocrFile").click();
 $("#ocrFile").onchange=e=>{const f=[...e.target.files];e.target.value="";if(f.length)ocrFiles(f)};
-$("#ocrAdd").onclick=()=>{const sel=[...document.querySelectorAll("#ocrList input:checked")].map(c=>ocrFound[+c.dataset.i]);quests.push(...sel);ocrFound=[];renderOcr();$("#ocrStatus").textContent=`Dodano ${sel.length} zadań.`;changed()};
+$("#ocrAdd").onclick=()=>{const sel=[...document.querySelectorAll("#ocrList input:checked")].map(c=>ocrFound[+c.dataset.i]);quests.push(...sel);ocrFound=[];renderOcr();$("#ocrStatus").textContent=`Dodano ${sel.length} ${plZad(sel.length)}.`;changed()};
 $("#qClear").onclick=function(){if(this.dataset.armed){quests=[];changed();delete this.dataset.armed;this.textContent="Usuń wszystkie zadania"}else{this.dataset.armed=1;this.textContent="Na pewno? Kliknij jeszcze raz";setTimeout(()=>{if(this.dataset.armed){delete this.dataset.armed;this.textContent="Usuń wszystkie zadania"}},4000)}};
 $("#qClearDone").onclick=()=>{quests=quests.filter(q=>needLeft(q)>0);changed()};
 document.addEventListener("paste",e=>{if(ui.view!=="zadania")return;const it=[...(e.clipboardData||{}).items||[]].filter(i=>i.type.startsWith("image/")).map(i=>i.getAsFile());if(it.length){e.preventDefault();ocrFiles(it)}});
