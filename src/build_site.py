@@ -5,7 +5,7 @@ tpl = open(os.path.join(ROOT, "tools/template.html"), encoding="utf8").read()
 data = open(os.path.join(ROOT, "data.json"), encoding="utf8").read().replace("</", "<\\/")
 VERSION = open(os.path.join(ROOT, "tools/VERSION")).read().strip()
 quests_js = open(os.path.join(ROOT, "tools/quests.js"), encoding="utf8").read()
-page = tpl.replace("/*__QUESTS__*/", quests_js).replace("__DATA__", data).replace("__VERSION__", VERSION)
+page = tpl.replace("/*__QUESTS__*/", quests_js).replace("__DATA__", data).replace("__VERSION__", VERSION).replace("__BM__", json.dumps(open(os.path.join(ROOT, "tools/bookmarklet.txt")).read()))
 
 # 1) artefakt
 open(os.path.join(ROOT, "warsztat-gwinta.html"), "w", encoding="utf8").write(page)

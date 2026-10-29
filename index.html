@@ -132,7 +132,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
 </style><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><div class="wrap">
   <header class="top">
     <div>
-      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 1.8.3</span></div>
+      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 1.9</span></div>
       <h1>Warsztat Gwinta</h1>
     </div>
     <div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div>
@@ -193,7 +193,14 @@ textarea{width:100%;min-height:96px;resize:vertical}
       <div id="clist"></div>
     </div>
     <div class="panel">
-      <h2>Import z playgwent.com</h2>
+      <h2>Synchronizacja z kontem Gwinta</h2>
+      <p class="small">Jednorazowo przeciągnij ten przycisk na pasek zakładek w przeglądarce (Ctrl+Shift+B pokazuje pasek):</p>
+      <div class="row"><a class="btn" id="bmLink" href="#">Gwint → Warsztat</a><button class="btn ghost" id="bmCopy">Kopiuj kod zakładki</button></div>
+      <p class="small">Potem, żeby zaktualizować kolekcję: otwórz <b>playgwent.com/pl/decks/builder</b>, zaloguj się i kliknij zakładkę. Apka otworzy się sama z aktualną kolekcją. Twoje hasło nigdy nie trafia do apki.</p>
+      <p class="small muted">Na telefonie: dodaj dowolną stronę do zakładek, edytuj zakładkę, jako adres wklej skopiowany kod i nazwij ją „gwsync”. Na playgwent.com wpisz „gwsync” w pasku adresu i wybierz zakładkę z podpowiedzi.</p>
+    </div>
+    <div class="panel">
+      <h2>Import z playgwent.com (ręcznie)</h2>
       <ol class="small" style="margin:0;padding-left:1.2em;display:grid;gap:4px">
         <li>Na komputerze otwórz <b>playgwent.com/pl/decks/builder</b> i zaloguj się.</li>
         <li>Naciśnij Ctrl+Shift+I, wejdź w <b>Console</b>, wklej kod poniżej i Enter.</li>
@@ -287,6 +294,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>1.9</b> Synchronizacja kolekcji jednym kliknięciem z playgwent.com przez zakładkę „Gwint → Warsztat”.</li>
         <li><b>1.8.3</b> Lepsze odczytywanie zestawów ze screena. Przy każdym zadaniu możesz klikać zestawy, żeby poprawić odczyt.</li>
         <li><b>1.8</b> Zadania ze screena: wybierasz zrzut ekranu z gry, apka sama odczytuje zadania. Obsługa zadań typu „wygraj z co najmniej 13 kartami z zestawu Novigradu”.</li>
         <li><b>1.7.2</b> Poprawiona wskazówka do Królowej Zimy (wchodzi sama po Mrozie na obu rzędach).</li>
@@ -514,6 +522,10 @@ $("#impBtn").onclick=()=>{
   if(ok){$("#imp").value="";changed()}
 };
 $("#emptyBtn").onclick=()=>{go("kolekcja");setTimeout(()=>$("#imp").scrollIntoView({behavior:"smooth",block:"center"}),50)};
+const BOOKMARKLET="javascript:(()=>{const r=document.getElementById('root');if(!location.host.includes('playgwent.com')||!r||!r.dataset.state){alert('Najpierw otw\\u00f3rz kreator talii na playgwent.com i zaloguj si\\u0119. Potem kliknij zak\\u0142adk\\u0119 jeszcze raz.');location.href='https://www.playgwent.com/pl/decks/builder';return}const u=JSON.parse(r.dataset.state).user_cards;if(!u||!u.length){alert('Nie widz\\u0119 Twoich kart. Zaloguj si\\u0119 na playgwent.com (prawy g\\u00f3rny r\\u00f3g) i od\\u015bwie\\u017c stron\\u0119.');return}const c={};u.forEach(i=>c[i]=(c[i]||0)+1);const ids=Object.keys(c).map(Number).sort((a,b)=>a-b);let p=0;const s=ids.map(i=>{const v=(i-p)*2+(Math.min(c[i],2)-1);p=i;return v.toString(36)}).join('.');location.href='https://karycha.github.io/gwent-deck-poradnik/#import=GW1:'+s})()";
+$("#bmLink").href=BOOKMARKLET;
+$("#bmLink").onclick=e=>{e.preventDefault();toast("Przeciągnij ten przycisk na pasek zakładek")};
+$("#bmCopy").onclick=()=>copyText(BOOKMARKLET,"Kod zakładki skopiowany");
 $("#codeBtn").onclick=()=>copyText(encodeCode(),"Kod skopiowany – wklej go na drugim urządzeniu");
 $("#snipBtn").onclick=()=>copyText($("#snip").textContent,"Kod skopiowany");
 $("#expBtn").onclick=()=>copyText(JSON.stringify(snap()),"Kopia skopiowana");
@@ -527,7 +539,7 @@ const standalonePage=!/claude\.ai|claudeusercontent|anthropic/.test(location.hos
 if(standalonePage){
   const l=document.createElement("link");l.rel="manifest";l.href="manifest.webmanifest";document.head.appendChild(l);
   const ic=document.createElement("link");ic.rel="apple-touch-icon";ic.href="icons/icon-192.png";document.head.appendChild(ic);
-  const APPV="1.8.3";
+  const APPV="1.9";
   let swReg=null;
   if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{swReg=r}).catch(()=>{});
   const newer=(a,b)=>{const x=a.split(".").map(Number),y=b.split(".").map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0)}return false};
@@ -725,7 +737,9 @@ $("#qAdd").onclick=()=>{const lines=$("#qText").value.split(/\n+/).map(s=>s.trim
 
 // start
 const h0=location.hash.slice(1);if(["decki","kolekcja","zadania","poradnik"].includes(h0))ui.view=h0;
-loadLocal();render();setStatus("ok","Zapis na tym urządzeniu");
+loadLocal();render();
+if(location.hash.startsWith("#import=")){const dc=decodeCode(decodeURIComponent(location.hash.slice(8)));ui.view="decki";try{history.replaceState(null,"","#decki")}catch(e){}
+  if(dc&&Object.keys(dc).length){owned=dc;changed();toast(`Zsynchronizowano z playgwent.com: ${Object.keys(dc).length} kart`)}else render()}setStatus("ok","Zapis na tym urządzeniu");
 (async()=>{
   if(standalonePage||!window.claude||!window.claude.use)return;
   let d=null;try{d=await window.claude.use("db")}catch(e){}

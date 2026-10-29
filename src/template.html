@@ -202,7 +202,14 @@ textarea{width:100%;min-height:96px;resize:vertical}
       <div id="clist"></div>
     </div>
     <div class="panel">
-      <h2>Import z playgwent.com</h2>
+      <h2>Synchronizacja z kontem Gwinta</h2>
+      <p class="small">Jednorazowo przeciągnij ten przycisk na pasek zakładek w przeglądarce (Ctrl+Shift+B pokazuje pasek):</p>
+      <div class="row"><a class="btn" id="bmLink" href="#">Gwint → Warsztat</a><button class="btn ghost" id="bmCopy">Kopiuj kod zakładki</button></div>
+      <p class="small">Potem, żeby zaktualizować kolekcję: otwórz <b>playgwent.com/pl/decks/builder</b>, zaloguj się i kliknij zakładkę. Apka otworzy się sama z aktualną kolekcją. Twoje hasło nigdy nie trafia do apki.</p>
+      <p class="small muted">Na telefonie: dodaj dowolną stronę do zakładek, edytuj zakładkę, jako adres wklej skopiowany kod i nazwij ją „gwsync”. Na playgwent.com wpisz „gwsync” w pasku adresu i wybierz zakładkę z podpowiedzi.</p>
+    </div>
+    <div class="panel">
+      <h2>Import z playgwent.com (ręcznie)</h2>
       <ol class="small" style="margin:0;padding-left:1.2em;display:grid;gap:4px">
         <li>Na komputerze otwórz <b>playgwent.com/pl/decks/builder</b> i zaloguj się.</li>
         <li>Naciśnij Ctrl+Shift+I, wejdź w <b>Console</b>, wklej kod poniżej i Enter.</li>
@@ -296,6 +303,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>1.9</b> Synchronizacja kolekcji jednym kliknięciem z playgwent.com przez zakładkę „Gwint → Warsztat”.</li>
         <li><b>1.8.3</b> Lepsze odczytywanie zestawów ze screena. Przy każdym zadaniu możesz klikać zestawy, żeby poprawić odczyt.</li>
         <li><b>1.8</b> Zadania ze screena: wybierasz zrzut ekranu z gry, apka sama odczytuje zadania. Obsługa zadań typu „wygraj z co najmniej 13 kartami z zestawu Novigradu”.</li>
         <li><b>1.7.2</b> Poprawiona wskazówka do Królowej Zimy (wchodzi sama po Mrozie na obu rzędach).</li>
@@ -523,6 +531,10 @@ $("#impBtn").onclick=()=>{
   if(ok){$("#imp").value="";changed()}
 };
 $("#emptyBtn").onclick=()=>{go("kolekcja");setTimeout(()=>$("#imp").scrollIntoView({behavior:"smooth",block:"center"}),50)};
+const BOOKMARKLET=__BM__;
+$("#bmLink").href=BOOKMARKLET;
+$("#bmLink").onclick=e=>{e.preventDefault();toast("Przeciągnij ten przycisk na pasek zakładek")};
+$("#bmCopy").onclick=()=>copyText(BOOKMARKLET,"Kod zakładki skopiowany");
 $("#codeBtn").onclick=()=>copyText(encodeCode(),"Kod skopiowany – wklej go na drugim urządzeniu");
 $("#snipBtn").onclick=()=>copyText($("#snip").textContent,"Kod skopiowany");
 $("#expBtn").onclick=()=>copyText(JSON.stringify(snap()),"Kopia skopiowana");
@@ -550,7 +562,9 @@ if(standalonePage){
 /*__QUESTS__*/
 // start
 const h0=location.hash.slice(1);if(["decki","kolekcja","zadania","poradnik"].includes(h0))ui.view=h0;
-loadLocal();render();setStatus("ok","Zapis na tym urządzeniu");
+loadLocal();render();
+if(location.hash.startsWith("#import=")){const dc=decodeCode(decodeURIComponent(location.hash.slice(8)));ui.view="decki";try{history.replaceState(null,"","#decki")}catch(e){}
+  if(dc&&Object.keys(dc).length){owned=dc;changed();toast(`Zsynchronizowano z playgwent.com: ${Object.keys(dc).length} kart`)}else render()}setStatus("ok","Zapis na tym urządzeniu");
 (async()=>{
   if(standalonePage||!window.claude||!window.claude.use)return;
   let d=null;try{d=await window.claude.use("db")}catch(e){}
