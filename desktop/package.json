@@ -1,6 +1,6 @@
 {
   "name": "warsztat-gwinta",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Warsztat Gwinta: kolekcja, decki, zadania i dziennik meczów Gwinta",
   "productName": "Warsztat Gwinta",
   "author": "Karycha",
@@ -12,7 +12,7 @@
     "appId": "pl.karys.warsztatgwinta",
     "productName": "Warsztat Gwinta",
     "artifactName": "Warsztat-Gwinta-Setup-${version}.${ext}",
-    "files": ["main.js", "preload.js", "logparser.js", "quest-defs.json", "icon.png", "app/**"],
+    "files": ["main.js", "preload.js", "logparser.js", "vision.js", "quest-defs.json", "icon.png", "app/**"],
     "win": { "target": "nsis", "icon": "icon.png" },
     "nsis": { "oneClick": true, "perMachine": false, "createDesktopShortcut": true, "shortcutName": "Warsztat Gwinta" },
     "publish": [{ "provider": "github", "owner": "Karycha", "repo": "gwent-deck-poradnik", "releaseType": "release" }]

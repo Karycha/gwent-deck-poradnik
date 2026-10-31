@@ -8,6 +8,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { GwentLogParser } = require('./logparser');
+const vision = require('./vision');
 
 const APP_URL = 'https://karycha.github.io/gwent-deck-poradnik/';
 const BUILDER_URL = 'https://www.playgwent.com/pl/decks/builder';
@@ -17,7 +18,7 @@ const FAC = { NG: 'Nilfgaard', MO: 'Potwory', NR: 'Królestwa Północy', ST: "S
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 
 let win = null;
-let store = { matches: {}, quests: {}, defs: {}, oppTags: {}, self: null, lastLogin: 0, lastSync: 0, syncCount: 0, syncStatus: 'idle', decksRaw: null, stateKeys: null, settings: { overlay: true, remind: true }, overlayPos: null, lastRemind: '' };
+let store = { matches: {}, quests: {}, defs: {}, oppTags: {}, self: null, lastLogin: 0, lastSync: 0, syncCount: 0, syncStatus: 'idle', decksRaw: null, stateKeys: null, settings: { overlay: true, remind: true, ai: true, aiModel: null }, overlayPos: null, lastRemind: '' };
 const storeFile = () => path.join(app.getPath('userData'), 'store.json');
 function loadStore() {
   try { store = Object.assign(store, JSON.parse(fs.readFileSync(storeFile(), 'utf8'))); } catch (e) {}
@@ -69,8 +70,8 @@ function onMatch(m) {
 let live = null;
 let lastEndedId = null;
 function onLive(d) {
-  if (d.phase === 'end') { live = null; lastEndedId = d.id || null; }
-  else { live = Object.assign({}, live && live.start === d.start ? live : {}, d); if (!initialScan) scoutLive(); }
+  if (d.phase === 'end') { live = null; lastEndedId = d.id || null; lastHandKey = ''; }
+  else { live = Object.assign({}, live && live.start === d.start ? live : {}, d); if (!initialScan) { scoutLive(); if (d.phase === 'gold' || d.phase === 'start') prewarm(); } }
   if (!initialScan) { pushState(); updateOverlay(d.phase === 'end'); }
 }
 
@@ -132,6 +133,38 @@ function openOverlay() {
   ovl.loadURL(APP_URL + '?desktop=1&overlay=1');
 }
 function closeOverlay() { clearTimeout(ovlHideT); if (ovl && !ovl.isDestroyed()) ovl.close(); ovl = null; }
+
+// ---------- czytanie ekranu wymiany kart ----------
+let visBusy = false, liveDeckIds = null, liveDeckFor = null, lastHandKey = '';
+async function visionTick() {
+  if (visBusy || !live || !store.settings.ai) return;
+  visBusy = true;
+  try {
+    const img = await vision.capture();
+    if (!img) return;
+    const m = vision.findMulligan(img);
+    if (m.teal < 200 || m.boxes.length < 3) return;
+    let faction = '';
+    try { await vision.loadCards(); faction = vision.factionOfEn(live.gold); } catch (e) {}
+    const deck = liveDeckFor === live.start ? liveDeckIds : null;
+    const hand = await vision.recognize(img, m.boxes, { deck, faction });
+    const key = hand.map(h => h.id).join(',');
+    if (key !== lastHandKey && live) {
+      lastHandKey = key;
+      live.hand = hand; live.handAt = Date.now(); live.handRound = live.round || 1;
+      pushState();
+    }
+  } catch (e) {
+  } finally { visBusy = false; }
+}
+async function prewarm() {
+  try {
+    if (!live) return; await vision.loadCards();
+    const deck = liveDeckFor === live.start ? liveDeckIds : null;
+    const ids = await vision.candidates({ deck, faction: vision.factionOfEn(live.gold) });
+    vision.ensureSigs(ids);
+  } catch (e) {}
+}
 
 // ---------- przypomnienia o zadaniach ----------
 function remindQuests() {
@@ -244,9 +277,24 @@ ipcMain.handle('state', () => statePayload());
 ipcMain.on('sync', (e, opts) => syncCollection(!!(opts && opts.show)));
 ipcMain.handle('tagOpp', (e, id, f) => { if (f) store.oppTags[id] = f; else delete store.oppTags[id]; save(); pushState(); return true; });
 ipcMain.on('openLogDir', () => shell.openPath(LOG_DIR));
+ipcMain.on('liveDeck', (e, ids) => { if (live && Array.isArray(ids)) { liveDeckIds = ids.map(String); liveDeckFor = live.start; prewarm(); } });
+ipcMain.handle('aiStatus', async () => { const models = await vision.ollamaModels(); return { models, model: vision.pickModel(models, store.settings.aiModel), ai: store.settings.ai }; });
+ipcMain.handle('aiAsk', async (e, req) => { const models = await vision.ollamaModels(); const model = vision.pickModel(models, store.settings.aiModel);
+  if (!model) return { error: models ? 'no-model' : 'no-ollama' }; const out = await vision.ask(model, String(req.system || ''), String(req.user || '')); return Object.assign({ model }, out || {}); });
+ipcMain.on('setModel', (e, m) => { store.settings.aiModel = m || null; save(); pushState(); });
+ipcMain.handle('debugShot', async () => {
+  const img = await vision.capture(); if (!img) return { error: 'Nie udało się zrobić zrzutu' };
+  const dir = path.join(app.getPath('userData'), 'diagnostyka'); fs.mkdirSync(dir, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  fs.writeFileSync(path.join(dir, 'zrzut-' + stamp + '.png'), img.toPNG());
+  const m = vision.findMulligan(img); let hand = null;
+  try { if (m.boxes.length) hand = await vision.recognize(img, m.boxes, { deck: liveDeckFor === (live && live.start) ? liveDeckIds : null, faction: live ? vision.factionOfEn(live.gold) : '' }); } catch (e) {}
+  fs.writeFileSync(path.join(dir, 'wynik-' + stamp + '.json'), JSON.stringify({ size: img.getSize(), mulligan: m, hand, live }, null, 1));
+  shell.openPath(dir); return { ok: true, teal: m.teal, boxes: m.boxes.length, hand };
+});
 ipcMain.on('overlayHide', () => { ovlDismissed = live ? live.start : null; closeOverlay(); });
 ipcMain.on('overlayShow', () => { ovlDismissed = null; openOverlay(); });
-ipcMain.on('setSetting', (e, k, v) => { if (['overlay', 'remind'].includes(k)) { store.settings[k] = !!v; save(); if (k === 'overlay') updateOverlay(false); pushState(); } });
+ipcMain.on('setSetting', (e, k, v) => { if (['overlay', 'remind', 'ai'].includes(k)) { store.settings[k] = !!v; save(); if (k === 'overlay') updateOverlay(false); pushState(); } });
 ipcMain.on('logout', async () => {
   const { session } = require('electron');
   await session.fromPartition('persist:gog').clearStorageData();
@@ -259,9 +307,12 @@ app.whenReady().then(() => {
   nativeTheme.themeSource = 'dark';
   app.setAppUserModelId('pl.karys.warsztatgwinta');
   loadStore();
+  if (store.settings.ai === undefined) store.settings.ai = true;
+  vision.init(app.getPath('userData'));
   createWindow();
   scanLogs();
   setInterval(scanLogs, 3000);
+  setInterval(visionTick, 2500);
   setInterval(remindQuests, 10 * 60 * 1000); setTimeout(remindQuests, 60000);
   setTimeout(() => syncCollection(false), 4000);
   setInterval(() => syncCollection(false), 30 * 60 * 1000);

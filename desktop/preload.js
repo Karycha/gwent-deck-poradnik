@@ -14,5 +14,10 @@ if (ok) {
     overlayHide: () => ipcRenderer.send('overlayHide'),
     overlayShow: () => ipcRenderer.send('overlayShow'),
     setSetting: (k, v) => ipcRenderer.send('setSetting', k, v),
+    setLiveDeck: ids => ipcRenderer.send('liveDeck', ids),
+    aiStatus: () => ipcRenderer.invoke('aiStatus'),
+    aiAsk: req => ipcRenderer.invoke('aiAsk', req),
+    setModel: m => ipcRenderer.send('setModel', m),
+    debugShot: () => ipcRenderer.invoke('debugShot'),
   });
 }
