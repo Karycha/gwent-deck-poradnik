@@ -58,7 +58,7 @@ const appStart = Date.now();
 function onMatch(m) {
   if (!m.id) return;
   const isNew = !store.matches[m.id] || !store.matches[m.id].result;
-  store.matches[m.id] = { id: m.id, start: m.start, end: m.end, mode: m.mode, players: m.players, faction: m.faction, result: m.result, xp: m.xp, level: m.level, rank: m.rank, quests: m.quests || [], rating: m.rating, srank: m.srank, mmr: m.mmr, gold: m.gold };
+  store.matches[m.id] = { id: m.id, start: m.start, end: m.end, mode: m.mode, players: m.players, faction: m.faction, result: m.result, xp: m.xp, level: m.level, rank: m.rank, quests: m.quests || [], rating: m.rating, srank: m.srank, mmr: m.mmr, gold: m.gold, roundEnds: m.roundEnds };
   save();
   if (!initialScan && isNew && m.end > appStart && m.result) {
     notifyMatch(store.matches[m.id]);
@@ -70,8 +70,36 @@ let live = null;
 let lastEndedId = null;
 function onLive(d) {
   if (d.phase === 'end') { live = null; lastEndedId = d.id || null; }
-  else { live = Object.assign({}, live && live.start === d.start ? live : {}, d); }
+  else { live = Object.assign({}, live && live.start === d.start ? live : {}, d); if (!initialScan) scoutLive(); }
   if (!initialScan) { pushState(); updateOverlay(d.phase === 'end'); }
+}
+
+// ---------- profil rywala (publiczna strona playgwent.com) ----------
+let scoutBusy = null;
+function scoutLive() {
+  if (!live || !live.players) return;
+  const opp = Object.values(live.players).find(n => n && n !== store.self);
+  if (opp) scout(opp);
+}
+function scout(nick) {
+  store.scout = store.scout || {};
+  const c = store.scout[nick];
+  if (c && Date.now() - c.t < 3600000) return;
+  if (scoutBusy === nick) return; scoutBusy = nick;
+  const w = new BrowserWindow({ show: false, webPreferences: { partition: 'persist:scout', contextIsolation: true, nodeIntegration: false, javascript: true } });
+  const done = text => {
+    clearTimeout(to); if (scoutBusy === nick) scoutBusy = null;
+    if (text) {
+      store.scout[nick] = { t: Date.now(), text: text.slice(0, 6000) };
+      const ks = Object.keys(store.scout).sort((a, b) => store.scout[b].t - store.scout[a].t); ks.slice(80).forEach(k => delete store.scout[k]);
+      save(); pushState();
+    }
+    if (!w.isDestroyed()) w.close();
+  };
+  const to = setTimeout(() => done(null), 30000);
+  w.webContents.on('did-finish-load', async () => { let t = null; try { t = await w.webContents.executeJavaScript('document.body.innerText'); } catch (e) {} done(t); });
+  w.webContents.on('did-fail-load', () => done(null));
+  w.loadURL('https://www.playgwent.com/pl/profile/' + encodeURIComponent(nick));
 }
 
 // ---------- okienko na wierzchu ----------
@@ -156,7 +184,7 @@ function scanLogs() {
     }
   }
   if (live && Date.now() - live.start > 45 * 60000) { live = null; pushState(); closeOverlay(); }
-  if (initialScan) { initialScan = false; pushState(); if (live) updateOverlay(false); }
+  if (initialScan) { initialScan = false; pushState(); if (live) { updateOverlay(false); scoutLive(); } }
 }
 
 // ---------- synchronizacja kolekcji ----------
@@ -195,7 +223,7 @@ function syncCollection(show) {
 function statePayload() {
   return { version: app.getVersion(), self: store.self, logFound: !!store.logFound, logDir: LOG_DIR,
     matches: Object.values(store.matches).filter(m => m.result).sort((a, b) => b.start - a.start).slice(0, 500),
-    oppTags: store.oppTags, quests: currentQuests(), live, lastEnded: lastEndedId, decksRaw: store.decksRaw, stateKeys: store.stateKeys, settings: store.settings, lastSync: store.lastSync, syncCount: store.syncCount, syncStatus: store.syncStatus };
+    oppTags: store.oppTags, quests: currentQuests(), live, lastEnded: lastEndedId, scout: store.scout || {}, decksRaw: store.decksRaw, stateKeys: store.stateKeys, settings: store.settings, lastSync: store.lastSync, syncCount: store.syncCount, syncStatus: store.syncStatus };
 }
 let pushT = null;
 function pushState() { clearTimeout(pushT); pushT = setTimeout(() => { const p = statePayload(); if (win && !win.isDestroyed()) win.webContents.send('state', p); if (ovl && !ovl.isDestroyed()) ovl.webContents.send('state', p); }, 150); }

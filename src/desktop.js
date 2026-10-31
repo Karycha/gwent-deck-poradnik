@@ -138,7 +138,7 @@ function renderMatches(){
   const vs=all.filter(m=>oppNick(m)===oppNick(m0)),vsS=wl(vs);
   last.innerHTML=`<div class="row" style="justify-content:space-between"><span class="label">${m0===all[0]?"Ostatni mecz":"Mecz"} · ${dayLabel(m0.start)} ${fmtT(m0.start)}</span><span class="small muted">${MODEN[m0.mode]||m0.mode}</span></div>
     <div class="mbig"><span class="mres ${m0.result}">${RESN[m0.result]||"?"}</span><span class="fchip">${FAC[m0.faction]?FAC[m0.faction].n:"?"}</span><span>vs <b class="nick"></b></span></div>
-    <div class="sumrow"><span>Czas: <b>${mins(m0)} min</b></span>${m0.xp?`<span>Doświadczenie: <b>+${m0.xp}</b></span>`:""}${ratingTxt(m0)}${m0.rank&&!m0.rating?`<span>Ranking: <b>${m0.rank.pieces}/${m0.rank.max}</b> (poziom ${m0.rank.tier})</span>`:""}${vs.length>1?`<span>Z tym graczem: <b>${vsS.w}–${vsS.l}</b></span>`:""}</div>
+    <div class="sumrow"><span>Czas: <b>${mins(m0)} min</b></span>${m0.roundEnds?`<span>Rundy: <b>${Math.min(3,m0.roundEnds.length+1)}</b></span>`:""}${m0.xp?`<span>Doświadczenie: <b>+${m0.xp}</b></span>`:""}${ratingTxt(m0)}${m0.rank&&!m0.rating?`<span>Ranking: <b>${m0.rank.pieces}/${m0.rank.max}</b> (poziom ${m0.rank.tier})</span>`:""}${vs.length>1?`<span>Z tym graczem: <b>${vsS.w}–${vsS.l}</b></span>`:""}</div>
     <div class="small qline"></div>
     <label class="small">Frakcja rywala: <select class="opp"></select></label>`;
   last.querySelector(".nick").textContent=oppNick(m0);
@@ -158,7 +158,7 @@ function renderMatches(){
     if(!ks.length){el.innerHTML='<p class="small muted">'+(el.classList.contains("op")?"Zaznacz frakcję rywala przy meczach, a pojawi się tu bilans.":"Brak danych.")+"</p>";return}
     ks.forEach(f=>{const s=wl(by[f]);const r=document.createElement("div");r.className="mst";r.style.setProperty("--fc",fcol(f));const mm=el.classList.contains("my")?all.find(m=>m.mmr&&m.mmr[f]):null;r.innerHTML=`<span class="sw"></span><span class="nm">${FAC[f].n}${mm?` <span class="small muted mono" title="MMR frakcji">${mm.mmr[f].to}</span>`:""}</span><span class="mono">${s.w}–${s.l}</span><span class="bar"><i style="width:${s.pct}%"></i></span><span class="mono">${s.pct}%</span>`;el.appendChild(r)})};
   statRows(sp.querySelector(".my"),m=>m.faction);
-  statRows(sp.querySelector(".op"),m=>tags[m.id]);
+  statRows(sp.querySelector(".op"),m=>tags[m.id]||guessFor(m));
   (()=>{const el=sp.querySelector(".dk");const by={};list.forEach(m=>{const d=matchDeck(m);if(d){(by[d.key]=by[d.key]||{d,ms:[]}).ms.push(m)}});
     const ks=Object.values(by).sort((a,b)=>b.ms.length-a.ms.length);
     if(!ks.length){el.innerHTML='<p class="small muted">Brak danych.</p>';return}
@@ -206,8 +206,11 @@ function liveCard(L,all){
   el.innerHTML=`<div class="row" style="justify-content:space-between"><span class="label"><span class="livedot"></span>Mecz trwa · ${MODEN[L.mode]||L.mode||""}</span><span class="mono ltimer" data-start="${L.start}"></span></div>
     <div class="mbig"><span>vs <b class="nick"></b></span>${g.f?`<span class="fchip">${FAC[g.f].n}</span>`:""}</div>
     <div class="sumrow">${vs.length?`<span>Z tym graczem: <b>${vsS.w}–${vsS.l}</b> (${vs.length} ${vs.length===1?"mecz":"mecze"})</span>`:opp?"<span>Pierwszy mecz z tym graczem</span>":"<span>Czekam na dane rywala…</span>"}${g.gold?`<span>Złota karta w talii: <b class="gold"></b></span>`:""}</div>
+    <div class="small lscout">${opp?scoutHTML(opp):""}</div>
     <div class="lq small"></div><div class="lplan"></div>`;
   el.querySelector(".nick").textContent=opp||"…";
+  el.querySelector(".label").insertAdjacentHTML("beforeend"," · "+roundTxt(L));
+  {const P=opp&&profOf(opp);if(P&&P.guess)el.querySelector(".lscout").insertAdjacentHTML("beforeend",expectHTML(P.guess.f))}
   if(g.gold)el.querySelector(".gold").textContent=g.card?g.card.pl:g.gold;
   const qs=gameQuests().filter(q=>needLeft(q)&&q.k!=="other"&&(!q.f||!g.f||q.f===g.f));
   if(qs.length)el.querySelector(".lq").textContent="Zadania do zrobienia w tej grze: "+qs.map(q=>`${qLabel(q)} ${gqDesc(q)} (${q.prog}/${q.n})`).join(" · ");
@@ -343,7 +346,7 @@ function renderOverlay(){
     body.querySelector(".nick").textContent=oppNick(m);const qn=questNames(m);body.querySelector(".qline").textContent=qn?"Zaliczone: "+qn:"";
     return;
   }
-  head.querySelector(".ovt").innerHTML='<span class="livedot"></span>'+(MODEN[L.mode]||L.mode||"Mecz");
+  head.querySelector(".ovt").innerHTML='<span class="livedot"></span>'+(MODEN[L.mode]||L.mode||"Mecz")+" · "+roundTxt(L);
   head.querySelector(".ltimer").dataset.start=L.start;
   const opp=Object.values(L.players||{}).find(x=>x!==(DS&&DS.self))||"…";
   const vs=all.filter(m=>oppNick(m)===opp),vsS=wl(vs);
@@ -352,17 +355,22 @@ function renderOverlay(){
   info.innerHTML=`<div><b class="nick"></b> <span class="small muted">${vs.length?`bilans ${vsS.w}–${vsS.l}`:"nowy rywal"}</span></div><div class="small dn"></div>`;
   info.querySelector(".nick").textContent="vs "+opp;
   info.querySelector(".dn").textContent=G.name?(G.own?"Twoja talia: ":"Talia: ")+G.name:(G.f?FAC[G.f].n:"Talia nieznana");
+  info.insertAdjacentHTML("beforeend",`<div class="small ovs">${opp!=="…"?scoutHTML(opp,true):""}</div>`);
+  if(L.round>=3&&G.cards){const fin=roleGroups(G).find(g=>g.r==="FIN");if(fin)info.insertAdjacentHTML("beforeend",`<div class="small ovr3">R3: teraz czas na ${fin.cards.map(c=>CARD[c.id].pl).join(", ")}</div>`)}
   body.appendChild(info);
   const tabs=document.createElement("div");tabs.className="filters ovtabs";
   let tab=null;try{tab=localStorage.getItem("gwint-ovtab")}catch(e){}tab=tab||"plan";
   const qs=gameQuests().filter(q=>needLeft(q)&&q.k!=="other"&&(!q.f||!G.f||q.f===G.f));
-  [["plan","Plan"],["karty","Karty"],["zad","Zadania"+(qs.length?" ("+qs.length+")":"")]].forEach(([k,l])=>{const b=document.createElement("button");b.className="fbtn small";b.textContent=l;b.setAttribute("aria-pressed",tab===k);b.onclick=()=>{try{localStorage.setItem("gwint-ovtab",k)}catch(e){}renderOverlay()};tabs.appendChild(b)});
+  [["plan","Plan"],["karty","Karty"],["rywal","Rywal"],["zad","Zadania"+(qs.length?" ("+qs.length+")":"")]].forEach(([k,l])=>{const b=document.createElement("button");b.className="fbtn small";b.textContent=l;b.setAttribute("aria-pressed",tab===k);b.onclick=()=>{try{localStorage.setItem("gwint-ovtab",k)}catch(e){}renderOverlay()};tabs.appendChild(b)});
   body.appendChild(tabs);
   const c=document.createElement("div");c.className="ovc small";body.appendChild(c);
   if(tab==="plan"){
     if(G.guide){const d=G.guide;c.innerHTML=`<div class="label">Mulligan</div><p></p><div class="label">Rundy</div><p></p><ol></ol>`;const ps=c.querySelectorAll("p");ps[0].textContent=d.mull;ps[1].textContent=d.rounds;(d.steps||[]).forEach(x=>{const li=document.createElement("li");li.textContent=x;c.querySelector("ol").appendChild(li)});
       if(G.own&&G.overlap<25){const n=document.createElement("p");n.className="muted";n.textContent=`Plan z talii „${d.name}” (wspólnych kart: ${G.overlap}).`;c.appendChild(n)}}
     else c.innerHTML='<p class="muted">Nie mam planu dla tej talii. Zsynchronizuj kolekcję, żeby apka znała Twoje talie.</p>';
+  }else if(tab==="rywal"){
+    const P=profOf(opp);c.innerHTML=scoutHTML(opp)+(P&&P.guess?expectHTML(P.guess.f):"");
+    const vsm=all.filter(m=>oppNick(m)===opp);if(vsm.length)c.insertAdjacentHTML("beforeend",`<p class="muted">Wasze mecze: ${vsm.map(m=>(m.result==="W"?"W":"P")+" "+(FAC[m.faction]?FAC[m.faction].n:"")).join(", ")}</p>`);
   }else if(tab==="karty"){
     if(G.cards)c.appendChild(roleList(G,true));else c.innerHTML='<p class="muted">Nie znam jeszcze kart tej talii.</p>';
   }else{
@@ -371,8 +379,51 @@ function renderOverlay(){
   }
 }
 
+// --- profil rywala (jak Porofessor: kto to jest i czym gra) ---
+const FACPL={"Nilfgaard":"NG","Potwory":"MO","Królestwa Północy":"NR","Scoia'tael":"ST","Skellige":"SK","Syndykat":"SY"};
+const num=x=>+(String(x||"").replace(/[^0-9]/g,""))||0;
+const profCache=new Map();
+function parseProfile(text){
+  if(!text)return null;if(profCache.has(text))return profCache.get(text);
+  const P={wins:{},season:{f:{}}};
+  let m=text.match(/Pozycja:\s*\n?\s*([\d\s\u00a0]+)\n/);if(m)P.pos=num(m[1]);
+  m=text.match(/\n(\d{1,4})\n(\d{1,2})\nDrabinka rankingowa/);if(m){P.level=+m[1];P.rank=+m[2]}
+  const iS=text.indexOf("STATYSTYKI"),iC=text.indexOf("Obecny sezon rankingowy"),iK=text.indexOf("KOLEKCJA KART");
+  if(iS>=0&&iC>iS){const a=text.slice(iS,iC);m=a.match(/Ogólnie\t([\d\s\u00a0]+?)\n/);if(m)P.total=num(m[1]);
+    for(const [n,f] of Object.entries(FACPL)){const r=new RegExp(n.replace(/'/g,"'")+"\\t\\s*\\n([\\d\\s\\u00a0]+?)\\n");const x=a.match(r);if(x)P.wins[f]=num(x[1])}}
+  if(iC>=0){const a=text.slice(iC,iK>iC?iK:undefined);m=a.match(/Ogólnie\t([\d\s\u00a0]+) MMR\n([\d\s\u00a0]+) Mecze/);if(m){P.season.mmr=num(m[1]);P.season.n=num(m[2])}
+    m=a.match(/Wygrane\t([\d\s\u00a0]+) Mecze/);if(m)P.season.w=num(m[1]);m=a.match(/Przegrane\t([\d\s\u00a0]+) Mecze/);if(m)P.season.l=num(m[1]);
+    for(const [n,f] of Object.entries(FACPL)){const r=new RegExp(n+"\\t\\s*\\n([\\d\\s\\u00a0]+) Mecze");const x=a.match(r);if(x)P.season.f[f]=num(x[1])}}
+  P.ok=!!(P.total||P.level||P.season.n);
+  // najbardziej prawdopodobna frakcja: obecny sezon, a jak pusto, to wygrane ogółem
+  const pick=o=>{const e=Object.entries(o).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]);const t=e.reduce((a,[,v])=>a+v,0);return e.length?{f:e[0][0],share:Math.round(e[0][1]/t*100),src:o}:null};
+  P.guess=pick(P.season.f)||pick(P.wins);if(P.guess)P.guess.season=P.guess.src===P.season.f;
+  profCache.set(text,P);return P;
+}
+function profOf(nick){const c=DS&&DS.scout&&DS.scout[nick];return c?parseProfile(c.text):null}
+function guessFor(m){const p=profOf(oppNick(m));return p&&p.guess?p.guess.f:""}
+function scoutHTML(nick,compact){
+  const P=profOf(nick);
+  if(!P)return `<span class="muted">Sprawdzam profil rywala…</span>`;
+  if(!P.ok)return `<span class="muted">Profil rywala jest prywatny.</span>`;
+  const bits=[];
+  if(P.level)bits.push(`poziom <b>${P.level}</b>`);if(P.rank)bits.push(`ranga <b>${P.rank}</b>`);if(P.pos)bits.push(`#${fmt(P.pos)}`);
+  if(P.season.n)bits.push(`sezon: <b>${P.season.w||0}–${P.season.l||0}</b>`);if(P.total)bits.push(`${fmt(P.total)} wygranych`);
+  let g="";if(P.guess){g=`<div>Pewnie zagra: <b style="color:${fcol(P.guess.f)}">${FAC[P.guess.f].n}</b> <span class="muted">(${P.guess.share}% ${P.guess.season?"gier w sezonie":"wygranych"})</span></div>`}
+  if(compact)return g||`<div>${bits.slice(0,2).join(" · ")}</div>`;
+  return `<div>${bits.join(" · ")}</div>${g}`;
+}
+function expectHTML(f){
+  if(!f)return "";
+  const ds=DATA.decks.filter(d=>d.f===f&&!d.b).sort((a,b)=>a.t-b.t).slice(0,2);
+  if(!ds.length)return "";
+  return `<div class="label" style="margin-top:6px">Czego się spodziewać (${FAC[f].n})</div>`+ds.map(d=>`<p class="note" style="margin:2px 0 4px"><b>${d.name}:</b> ${d.plan.replace(/</g,"&lt;")}</p>`).join("");
+}
+function roundTxt(L){return L.round?`Runda ${Math.min(L.round,3)}`:"Runda 1"}
+
 function oppSelect(sel,m,tags){
-  sel.innerHTML='<option value="">rywal: ?</option>'+["NG","MO","NR","ST","SK","SY"].map(f=>`<option value="${f}"${tags[m.id]===f?" selected":""}>${FAC[f].n}</option>`).join("");
+  const gf=!tags[m.id]&&guessFor(m);
+  sel.innerHTML=`<option value="">${gf?"rywal: "+FAC[gf].n+" (?)":"rywal: ?"}</option>`+["NG","MO","NR","ST","SK","SY"].map(f=>`<option value="${f}"${tags[m.id]===f?" selected":""}>${FAC[f].n}</option>`).join("");
   sel.onchange=e=>{const f=e.target.value;if(DS){if(f)DS.oppTags[m.id]=f;else delete DS.oppTags[m.id]}DESK.tagOpp(m.id,f)};
 }
 
@@ -401,7 +452,7 @@ if(DESK){
 .ovh .ovt{flex:1;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.ovh .ltimer{font-size:.85rem}
 .ovx{-webkit-app-region:no-drag;background:none;border:0;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 4px}.ovx:hover{color:var(--ink)}
 .ovb{flex:1;overflow:auto;padding:8px 10px;display:grid;gap:6px;align-content:start}.ovb .mbig{font-size:1.1rem}.ovtabs{gap:4px}
-.ovc p{margin:2px 0 6px}.ovc ol{margin:4px 0;padding-left:1.1em}.ovq{padding:4px 6px;border-radius:6px;background:var(--sunk);margin-bottom:4px}
+.ovc p{margin:2px 0 6px}.ovr3{color:var(--accent);font-weight:600}.ovs{color:var(--muted)}.ovs b{color:var(--ink)}.ovc ol{margin:4px 0;padding-left:1.1em}.ovq{padding:4px 6px;border-radius:6px;background:var(--sunk);margin-bottom:4px}
 .mst .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.mst .bar i{display:block;height:100%;background:var(--fc)}
 @media(max-width:520px){.mrow{grid-template-columns:auto auto 1fr}.mrow .opp{grid-column:1/-1;grid-row:auto;max-width:none}}`;
   document.head.appendChild(css);

@@ -46,6 +46,15 @@ class GwentLogParser {
       this.live({ phase: 'start', start: t, mode: this.cur.mode, players: {} }); return;
     }
     if (this.cur && (x = msg.match(/\[PlayerInfoFetcher\]\[(P[12])\] Player info obtained ([^,]+),/))) { this.cur.players[x[1]] = x[2].trim(); this.live({ phase: 'players', start: this.cur.start, mode: this.cur.mode, players: this.cur.players, gold: this.cur.gold }); return; }
+    if (this.cur && /VFX CORE DONE.*\((CardDeath|Banish)\(Clone/.test(msg)) {
+      // wiele kart znika naraz = koniec rundy (plansza czyszczona)
+      const c = this.cur; c.burst = (c.burst && t - c.burst.t0 < 1000) ? c.burst : { t0: t, n: 0, done: false }; c.burst.n++;
+      if (!c.burst.done && c.burst.n >= 7 && t - (c.lastRoundEnd || c.start) > 60000) {
+        c.burst.done = true; c.lastRoundEnd = t; c.roundEnds = (c.roundEnds || []).concat(t);
+        this.live({ phase: 'round', start: c.start, mode: c.mode, players: c.players, gold: c.gold, round: c.roundEnds.length + 1, roundEnds: c.roundEnds });
+      }
+      return;
+    }
     if (this.cur && (x = msg.match(/\[CommonDenominatorAchievement\]Gold found: (.+)$/))) { this.cur.gold = x[1].trim(); this.live({ phase: 'gold', start: this.cur.start, mode: this.cur.mode, players: this.cur.players, gold: this.cur.gold }); return; }
     if ((x = msg.match(/End Game Data Received\. ProcessingEndGameData id: (\d+)/))) {
       if (this.cur) { this.cur.id = x[1]; this.cur.end = t; this.mergeExtras(this.cur); } return;
