@@ -163,6 +163,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <button class="tab" role="tab" id="tab-decki" data-v="decki">Decki</button>
     <button class="tab" role="tab" id="tab-kolekcja" data-v="kolekcja">Kolekcja</button>
     <button class="tab" role="tab" id="tab-zadania" data-v="zadania">Zadania</button>
+    <button class="tab" role="tab" id="tab-mecze" data-v="mecze">Mecze</button>
     <button class="tab" role="tab" id="tab-poradnik" data-v="poradnik">Poradnik</button>
   </div>
 
@@ -201,7 +202,8 @@ textarea{width:100%;min-height:96px;resize:vertical}
       <div class="filters" id="colFilters"></div>
       <div id="clist"></div>
     </div>
-    <div class="panel">
+    <div class="panel" id="deskSync" hidden></div>
+    <div class="panel" id="bmPanel">
       <h2>Synchronizacja z kontem Gwinta</h2>
       <p class="small">Jednorazowo przeciągnij ten przycisk na pasek zakładek w przeglądarce (Ctrl+Shift+B pokazuje pasek):</p>
       <div class="row"><a class="btn" id="bmLink" href="#">Gwint → Warsztat</a><button class="btn ghost" id="bmCopy">Kopiuj kod zakładki</button></div>
@@ -239,6 +241,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
   </section>
 
   <section id="v-zadania" hidden style="display:grid;gap:14px">
+    <div class="panel" id="gqPanel" hidden></div>
     <div class="panel">
       <h2>Dodaj zadania ze screena</h2>
       <p class="small muted">Zrób zrzut ekranu z zadaniami w grze (cykl, zadania dzienne, Podróż) i wybierz go tutaj. Apka sama odczyta zadania. Na komputerze możesz też wkleić screena skrótem Ctrl+V.</p>
@@ -258,6 +261,8 @@ textarea{width:100%;min-height:96px;resize:vertical}
       <p class="small muted">Talie złożone automatycznie z Twoich kart tak, żeby jedną talią zaliczyć jak najwięcej zadań naraz. Zielone pole przy karcie = pasuje do zadania. To talie do odhaczania zadań, nie na ranking.</p>
       <div id="qplan" class="decks"></div></div>
   </section>
+
+  <section id="v-mecze" hidden style="display:grid;gap:14px"><div id="mbox" style="display:grid;gap:14px"></div></section>
 
   <section id="v-poradnik" hidden class="guide">
     <section>
@@ -303,6 +308,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>2.0</b> Aplikacja na komputer (Windows): sama pobiera nowe karty z konta GOG, zapisuje Twoje mecze i podsumowanie po każdej grze, a zadania z gry pojawiają się same w zakładce Zadania. Nowa zakładka Mecze.</li>
         <li><b>1.9</b> Synchronizacja kolekcji jednym kliknięciem z playgwent.com przez zakładkę „Gwint → Warsztat”.</li>
         <li><b>1.8.3</b> Lepsze odczytywanie zestawów ze screena. Przy każdym zadaniu możesz klikać zestawy, żeby poprawić odczyt.</li>
         <li><b>1.8</b> Zadania ze screena: wybierasz zrzut ekranu z gry, apka sama odczytuje zadania. Obsługa zadań typu „wygraj z co najmniej 13 kartami z zestawu Novigradu”.</li>
@@ -480,11 +486,13 @@ function renderCollection(){
 }
 
 function render(){
-  ["decki","kolekcja","zadania","poradnik"].forEach(v=>{document.getElementById("v-"+v).hidden=ui.view!==v;document.getElementById("tab-"+v).setAttribute("aria-selected",ui.view===v)});
+  ["decki","kolekcja","zadania","mecze","poradnik"].forEach(v=>{document.getElementById("v-"+v).hidden=ui.view!==v;document.getElementById("tab-"+v).setAttribute("aria-selected",ui.view===v)});
   renderRecs();
   if(ui.view==="decki")renderDecks();
   if(ui.view==="kolekcja")renderCollection();
   if(ui.view==="zadania")renderQuests();
+  if(ui.view==="mecze"&&typeof renderMatches==="function")renderMatches();
+  if(typeof renderDeskSync==="function")renderDeskSync();
 }
 function go(v){ui.view=v;try{if(location.hash!=="#"+v)history.replaceState(null,"","#"+v)}catch(e){}render();window.scrollTo({top:0})}
 
@@ -541,7 +549,7 @@ $("#expBtn").onclick=()=>copyText(JSON.stringify(snap()),"Kopia skopiowana");
 $("#resetBtn").onclick=function(){if(this.dataset.armed){owned={};changed();this.textContent="Wyczyść kolekcję";delete this.dataset.armed;toast("Kolekcja wyczyszczona")}else{this.dataset.armed=1;this.textContent="Na pewno? Kliknij jeszcze raz";setTimeout(()=>{if(this.dataset.armed){delete this.dataset.armed;this.textContent="Wyczyść kolekcję"}},4000)}};
 // import kopii: wklejenie JSON w pole importu
 
-window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["decki","kolekcja","zadania","poradnik"].includes(h)&&h!==ui.view){ui.view=h;render()}});
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(["decki","kolekcja","zadania","mecze","poradnik"].includes(h)&&h!==ui.view){ui.view=h;render()}});
 
 // PWA (GitHub Pages)
 const standalonePage=!/claude\.ai|claudeusercontent|anthropic/.test(location.hostname)&&location.protocol.startsWith("http");
@@ -560,8 +568,9 @@ if(standalonePage){
 }
 
 /*__QUESTS__*/
+/*__DESKTOP__*/
 // start
-const h0=location.hash.slice(1);if(["decki","kolekcja","zadania","poradnik"].includes(h0))ui.view=h0;
+const h0=location.hash.slice(1);if(["decki","kolekcja","zadania","mecze","poradnik"].includes(h0))ui.view=h0;
 loadLocal();render();
 if(location.hash.startsWith("#import=")){const dc=decodeCode(decodeURIComponent(location.hash.slice(8)));ui.view="decki";try{history.replaceState(null,"","#decki")}catch(e){}
   if(dc&&Object.keys(dc).length){owned=dc;changed();toast(`Zsynchronizowano z playgwent.com: ${Object.keys(dc).length} kart`)}else render()}setStatus("ok","Zapis na tym urządzeniu");

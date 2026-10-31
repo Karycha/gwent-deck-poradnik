@@ -31,7 +31,9 @@ function parseQuest(text){
   return q;
 }
 function qMatch(c,q){
-  if(q.k==="win")return false;
+  if(q.k==="win"||q.k==="games"||q.k==="other")return false;
+  if(q.ids&&!q.ids.has(String(c.id)))return false;
+  if(q.rar&&c.r!==q.rar)return false;
   if(q.f&&c.f!==q.f)return false;
   if(q.sets.length&&!q.sets.includes(c.s))return false;
   if(q.kw&&!c.ab.toLowerCase().includes(q.kw))return false;
@@ -69,19 +71,21 @@ function buildQuestDeck(f,qs){
   const cards=Object.entries(deck);
   return {f,leader:L,limit,tot,units,n,cards,hits:qs.map(q=>cards.reduce((a,[id,k])=>a+(qMatch(CARD[id],q)?k:0),0))};
 }
+function allQuests(){return quests.concat(typeof gameQuests==="function"?gameQuests():[])}
+function qLabel(q){if(q.src==="game")return "G"+(gameQuests().indexOf(q)+1);return "Z"+(quests.indexOf(q)+1)}
 function questPlan(){
-  const act=quests.filter(q=>needLeft(q)>0);
+  const act=allQuests().filter(q=>needLeft(q)>0);
   return ["NG","MO","NR","ST","SK","SY"].map(f=>{
     const qs=act.filter(q=>(q.k==="play"||q.k==="deck")&&(!q.f||q.f===f));
     const d=buildQuestDeck(f,qs);
     const done=[];
-    act.forEach(q=>{if(q.k==="win"){if(!q.f||q.f===f)done.push(q)}else{const i=qs.indexOf(q);if(i>=0&&d.hits[i]>=(q.k==="deck"?q.min:Math.min(needLeft(q),3)))done.push(q)}});
+    act.forEach(q=>{if(q.k==="other")return;if(q.k==="win"||q.k==="games"){if(!q.f||q.f===f)done.push(q)}else{const i=qs.indexOf(q);if(i>=0&&d.hits[i]>=(q.k==="deck"?q.min:Math.min(needLeft(q),3)))done.push(q)}});
     return {f,d,qs,done};
   }).filter(p=>p.done.length&&p.d.n===25).sort((a,b)=>b.done.length-a.done.length||b.d.tot-a.d.tot);
 }
 function renderQuests(){
   const box=$("#qlist");box.innerHTML="";
-  if(!quests.length){box.innerHTML='<p class="empty">Nie masz jeszcze zadań. Wklej treść zadania z gry powyżej.</p>'}
+  if(!quests.length){box.innerHTML=typeof DESK!=="undefined"&&DESK?'<p class="empty">Zadania z gry są wyżej. Tu możesz dopisać własne.</p>':'<p class="empty">Nie masz jeszcze zadań. Wklej treść zadania z gry powyżej.</p>'}
   quests.forEach((q,i)=>{
     const el=document.createElement("div");el.className="quest"+(needLeft(q)?"":" done");
     const own=q.k!=="win"?Object.keys(owned).filter(k=>qMatch(CARD[k],q)):[];
@@ -100,8 +104,9 @@ function renderQuests(){
     if(q.k!=="win"){const ch=el.querySelector(".qcards");own.sort((a,b)=>CARD[a].f.localeCompare(CARD[b].f)||CARD[b].p-CARD[a].p).slice(0,24).forEach(k=>{const s=document.createElement("span");s.className="qchip";s.style.setProperty("--fc",fcol(CARD[k].f));s.textContent=(owned[k]>1?owned[k]+"× ":"")+CARD[k].pl;ch.appendChild(s)});if(own.length>24){const s=document.createElement("span");s.className="small muted";s.textContent=`+${own.length-24} więcej`;ch.appendChild(s)}}
     box.appendChild(el);
   });
+  if(typeof renderGameQuests==="function")renderGameQuests();
   const pb=$("#qplan");pb.innerHTML="";
-  const act=quests.filter(q=>needLeft(q)>0);
+  const act=allQuests().filter(q=>needLeft(q)>0);
   if(!act.length){pb.innerHTML='<p class="empty">Plan pojawi się, gdy dodasz zadania.</p>';return}
   const plan=questPlan();
   if(!plan.length){pb.innerHTML='<p class="empty">Z obecnej kolekcji nie da się złożyć talii pod te zadania.</p>';return}
@@ -110,7 +115,7 @@ function renderQuests(){
     const newOnes=p.done.filter(q=>!covered.has(q));if(!newOnes.length&&pi>0)return;p.done.forEach(q=>covered.add(q));
     const art=document.createElement("article");art.className="deck"+(ui.open.has("q-"+p.f)?" open":"");art.style.setProperty("--fc",fcol(p.f));
     const head=document.createElement("button");head.className="deck-head";
-    const ids=p.done.map(q=>"Z"+(quests.indexOf(q)+1)).join(", ");
+    const ids=p.done.map(qLabel).join(", ");
     head.innerHTML=`<div class="deck-title"><span class="fchip">${FAC[p.f].n}</span><h3>Talia na zadania</h3><span class="tier bud">${ids}</span></div><span class="chev" aria-hidden="true">›</span>
       <div class="deck-meta"><span>Przywódca: <b></b></span><span class="mono">${p.d.tot}/${p.d.limit} prowizji · ${p.d.units} jedn.</span></div>`;
     head.querySelector("b").textContent=p.d.leader.pl;
@@ -119,7 +124,7 @@ function renderQuests(){
     if(ui.open.has("q-"+p.f)){
       const body=document.createElement("div");body.className="deck-body";
       const info=document.createElement("div");info.className="small";
-      info.innerHTML=p.qs.map((q,i)=>`Z${quests.indexOf(q)+1}: <b>${p.d.hits[i]}</b> pasujących kart w talii`+(q.k==="deck"?` (wymagane ${q.min})`:"")).join(" · ")||"Ta talia służy do wygrywania gier tą frakcją.";
+      info.innerHTML=p.qs.map((q,i)=>`${qLabel(q)}: <b>${p.d.hits[i]}</b> pasujących kart w talii`+(q.k==="deck"?` (wymagane ${q.min})`:"")).join(" · ")||"Ta talia służy do wygrywania gier tą frakcją.";
       body.appendChild(info);
       const cl=document.createElement("div");cl.className="clist";
       p.d.cards.sort((a,b)=>CARD[b[0]].p-CARD[a[0]].p).forEach(([id,k])=>{const r=cardRow(id,k);if(p.qs.some(q=>qMatch(CARD[id],q)))r.classList.add("qhit");cl.appendChild(r)});
@@ -131,8 +136,8 @@ function renderQuests(){
     }
     pb.appendChild(art);
   });
-  const left=act.filter(q=>!covered.has(q));
-  if(left.length){const p=document.createElement("p");p.className="small muted";p.textContent="Bez talii z Twoich kart: "+left.map(q=>"Z"+(quests.indexOf(q)+1)).join(", ")+". Zobacz, czego brakuje, w liście pasujących kart.";pb.appendChild(p)}
+  const left=act.filter(q=>!covered.has(q)&&q.k!=="other");
+  if(left.length){const p=document.createElement("p");p.className="small muted";p.textContent="Bez talii z Twoich kart: "+left.filter(q=>q.k!=="other").map(qLabel).join(", ")+". Zobacz, czego brakuje, w liście pasujących kart.";pb.appendChild(p)}
   const wins=act.filter(q=>q.k==="win"&&q.f);
   if(wins.length){const w=document.createElement("div");w.className="small";
     w.innerHTML="<b>Najlepsze gotowe talie do wygranych:</b> "+wins.map(q=>{const best=DATA.decks.filter(d=>d.f===q.f).map(d=>({d,s:deckStats(d)})).sort((a,b)=>a.s.scrap-b.s.scrap||a.d.t-b.d.t)[0];return best?`${FAC[q.f].n}: ${best.d.name} (${best.s.scrap?fmt(best.s.scrap)+" skr. brakuje":"masz komplet"})`:""}).join(" · ");pb.appendChild(w)}

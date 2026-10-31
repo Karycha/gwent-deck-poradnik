@@ -1,0 +1,29 @@
+name: Aplikacja na komputer
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Kopia strony do aplikacji (tryb offline)
+        shell: bash
+        run: |
+          mkdir -p desktop/app/icons
+          cp index.html manifest.webmanifest version.json desktop/app/
+          cp icons/* desktop/app/icons/
+      - name: Instalacja
+        working-directory: desktop
+        run: npm install
+      - name: Budowanie i wydanie
+        working-directory: desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish always
