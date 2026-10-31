@@ -132,7 +132,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
 </style><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><div class="wrap">
   <header class="top">
     <div>
-      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 2.1</span></div>
+      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 2.2</span></div>
       <h1>Warsztat Gwinta</h1>
     </div>
     <div class="row" style="gap:10px"><button class="btn ghost small" id="themeBtn" aria-label="Zmień motyw">Motyw</button><div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div></div>
@@ -173,6 +173,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
   </section>
 
   <section id="v-kolekcja" hidden style="display:grid;gap:14px">
+    <div class="panel" id="craftPanel"></div>
     <div class="panel">
       <div class="row" style="justify-content:space-between">
         <h2>Moje karty</h2>
@@ -299,6 +300,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>2.2</b> Co scraftować: wpisujesz liczbę skrawków, apka podpowiada najlepsze karty i talie do dokończenia. W aplikacji na komputer: okienko na wierzchu gry z planem, kartami wg kolejności gry i zadaniami; wykres punktów rankingu i MMR; statystyki dla każdej talii; wieczorne przypomnienie o zadaniach dziennych.</li>
         <li><b>2.1</b> Tryb ciemny (przycisk „Motyw” na górze; w aplikacji na komputer domyślnie ciemny). Mecze na żywo: gdy zaczynasz grę, apka pokazuje rywala, Wasz bilans, zadania do zrobienia i plan gry dla Twojej talii. Po meczu: zmiana punktów rankingu, ranga i MMR frakcji.</li>
         <li><b>2.0</b> Aplikacja na komputer (Windows): sama pobiera nowe karty z konta GOG, zapisuje Twoje mecze i podsumowanie po każdej grze, a zadania z gry pojawiają się same w zakładce Zadania. Nowa zakładka Mecze.</li>
         <li><b>1.9</b> Synchronizacja kolekcji jednym kliknięciem z playgwent.com przez zakładkę „Gwint → Warsztat”.</li>
@@ -485,6 +487,7 @@ function render(){
   if(ui.view==="zadania")renderQuests();
   if(ui.view==="mecze"&&typeof renderMatches==="function")renderMatches();
   if(typeof renderDeskSync==="function")renderDeskSync();
+  if(ui.view==="kolekcja"&&typeof renderCraft==="function")renderCraft();
 }
 function go(v){ui.view=v;try{if(location.hash!=="#"+v)history.replaceState(null,"","#"+v)}catch(e){}render();window.scrollTo({top:0})}
 
@@ -555,7 +558,7 @@ const standalonePage=!/claude\.ai|claudeusercontent|anthropic/.test(location.hos
 if(standalonePage){
   const l=document.createElement("link");l.rel="manifest";l.href="manifest.webmanifest";document.head.appendChild(l);
   const ic=document.createElement("link");ic.rel="apple-touch-icon";ic.href="icons/icon-192.png";document.head.appendChild(ic);
-  const APPV="2.1";
+  const APPV="2.2";
   let swReg=null;
   if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{swReg=r}).catch(()=>{});
   const newer=(a,b)=>{const x=a.split(".").map(Number),y=b.split(".").map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0)}return false};
@@ -883,7 +886,7 @@ function renderMatches(){
   }
   const all=(DS&&DS.matches)||[];
   const tags=(DS&&DS.oppTags)||{};
-  if(!all.length&&!DS.live){box.innerHTML=`<div class="panel"><h2>Mecze</h2><p class="empty">${DS&&DS.logFound?"Jeszcze nie ma meczów. Zagraj w Gwinta, a wynik pojawi się tu sam.":"Nie widzę logu gry. Uruchom Gwinta na tym komputerze."}</p></div>`;return}
+  if(!all.length&&!DS.live){box.innerHTML=`<div class="panel"><h2>Mecze</h2><p class="empty">${DS&&DS.logFound?"Jeszcze nie ma meczów. Zagraj w Gwinta, a wynik pojawi się tu sam.":"Nie widzę logu gry. Uruchom Gwinta na tym komputerze."}</p></div>`;box.appendChild(settingsPanel());return}
   if(DS.live)box.appendChild(liveCard(DS.live,all));
   ui.mper=ui.mper||"7";
   const cut=ui.mper==="all"?0:ui.mper==="1"?new Date().setHours(0,0,0,0):Date.now()-7*864e5;
@@ -908,7 +911,8 @@ function renderMatches(){
   const S=wl(list);
   sp.innerHTML=`<div class="row" style="justify-content:space-between"><h2>Statystyki</h2><div class="filters per"></div></div>
     <div class="sumrow"><span>Mecze: <b>${S.n}</b></span><span>Bilans: <b>${S.w}–${S.l}</b></span><span>Wygrane: <b>${S.pct}%</b></span>${(()=>{const r=all.find(m=>m.rating);return r?`<span>Punkty rankingu: <b>${r.rating.to}</b>${r.srank?` · ranga <b>${r.srank.to}</b>`:""}</span>`:""})()}</div>
-    <div class="grid2"><div><div class="label">Moje frakcje</div><div class="mstat my"></div></div><div><div class="label">Frakcje rywali</div><div class="mstat op"></div></div></div>`;
+    <div class="grid2"><div><div class="label">Moje frakcje</div><div class="mstat my"></div></div><div><div class="label">Frakcje rywali</div><div class="mstat op"></div></div></div>
+    <div class="label" style="margin-top:8px">Moje talie</div><div class="mstat dk"></div>`;
   [["1","Dziś"],["7","7 dni"],["all","Wszystko"]].forEach(([k,l])=>{const b=document.createElement("button");b.className="fbtn";b.textContent=l;b.setAttribute("aria-pressed",ui.mper===k);b.onclick=()=>{ui.mper=k;renderMatches()};sp.querySelector(".per").appendChild(b)});
   const statRows=(el,key)=>{const by={};list.forEach(m=>{const f=key(m);if(f)(by[f]=by[f]||[]).push(m)});
     const ks=Object.keys(by).sort((a,b)=>by[b].length-by[a].length);
@@ -916,7 +920,13 @@ function renderMatches(){
     ks.forEach(f=>{const s=wl(by[f]);const r=document.createElement("div");r.className="mst";r.style.setProperty("--fc",fcol(f));const mm=el.classList.contains("my")?all.find(m=>m.mmr&&m.mmr[f]):null;r.innerHTML=`<span class="sw"></span><span class="nm">${FAC[f].n}${mm?` <span class="small muted mono" title="MMR frakcji">${mm.mmr[f].to}</span>`:""}</span><span class="mono">${s.w}–${s.l}</span><span class="bar"><i style="width:${s.pct}%"></i></span><span class="mono">${s.pct}%</span>`;el.appendChild(r)})};
   statRows(sp.querySelector(".my"),m=>m.faction);
   statRows(sp.querySelector(".op"),m=>tags[m.id]);
+  (()=>{const el=sp.querySelector(".dk");const by={};list.forEach(m=>{const d=matchDeck(m);if(d){(by[d.key]=by[d.key]||{d,ms:[]}).ms.push(m)}});
+    const ks=Object.values(by).sort((a,b)=>b.ms.length-a.ms.length);
+    if(!ks.length){el.innerHTML='<p class="small muted">Brak danych.</p>';return}
+    ks.forEach(({d,ms})=>{const s=wl(ms);const r=document.createElement("div");r.className="mst";r.style.setProperty("--fc",fcol(d.f||"NE"));r.innerHTML=`<span class="sw"></span><span class="nm"></span><span class="mono">${s.w}–${s.l}</span><span class="bar"><i style="width:${s.pct}%"></i></span><span class="mono">${s.pct}%</span>`;r.querySelector(".nm").textContent=d.name;el.appendChild(r)});
+    if(!myDecks().length)el.insertAdjacentHTML("beforeend",'<p class="small muted">Talie rozpoznaję po pierwszej złotej karcie. Po synchronizacji z GOG pokażę nazwy Twoich talii, jeśli strona je udostępnia.</p>')})();
   box.appendChild(sp);
+  box.appendChild(chartPanel(all));
   // lista
   const lp=document.createElement("div");lp.className="panel";lp.innerHTML="<h2>Historia</h2>";
   let day=null,cl=null;
@@ -933,6 +943,7 @@ function renderMatches(){
   if(!list.length)lp.insertAdjacentHTML("beforeend",'<p class="empty">Brak meczów w tym okresie.</p>');
   lp.insertAdjacentHTML("beforeend",'<p class="small muted">Gra nie zapisuje w logu, jakie karty były rzucane w rundach, więc apka pokazuje wynik, czas, tryb, rywala i zadania. Frakcję rywala zaznaczasz sam, wtedy statystyki pokażą, z kim przegrywasz najczęściej.</p>');
   box.appendChild(lp);
+  box.appendChild(settingsPanel());
 }
 const signed=n=>(n>0?"+":n<0?"−":"±")+Math.abs(n);
 function ratingTxt(m){
@@ -951,7 +962,7 @@ function liveDeck(gold){
 function liveCard(L,all){
   const el=document.createElement("div");el.className="panel mlive";
   const opp=Object.values(L.players||{}).find(x=>x!==(DS&&DS.self))||"";
-  const g=liveDeck(L.gold);el.style.setProperty("--fc",fcol(g.f||"NE"));
+  const G=liveGuide(L),g={f:G.f,gold:G.gold,card:G.card};el.style.setProperty("--fc",fcol(g.f||"NE"));
   const vs=opp?all.filter(m=>oppNick(m)===opp):[],vsS=wl(vs);
   el.innerHTML=`<div class="row" style="justify-content:space-between"><span class="label"><span class="livedot"></span>Mecz trwa · ${MODEN[L.mode]||L.mode||""}</span><span class="mono ltimer" data-start="${L.start}"></span></div>
     <div class="mbig"><span>vs <b class="nick"></b></span>${g.f?`<span class="fchip">${FAC[g.f].n}</span>`:""}</div>
@@ -961,13 +972,166 @@ function liveCard(L,all){
   if(g.gold)el.querySelector(".gold").textContent=g.card?g.card.pl:g.gold;
   const qs=gameQuests().filter(q=>needLeft(q)&&q.k!=="other"&&(!q.f||!g.f||q.f===g.f));
   if(qs.length)el.querySelector(".lq").textContent="Zadania do zrobienia w tej grze: "+qs.map(q=>`${qLabel(q)} ${gqDesc(q)} (${q.prog}/${q.n})`).join(" · ");
-  if(g.deck){const d=g.deck,pl=el.querySelector(".lplan");
+  const pl=el.querySelector(".lplan");
+  if(G.guide){const d=G.guide;
     pl.innerHTML=`<details${ui.liveOpen===false?"":" open"}><summary><b>Plan gry: </b><span class="dn"></span></summary><div class="grid2"><div><div class="label">Mulligan</div><p class="note"></p></div><div><div class="label">Rundy</div><p class="note"></p></div></div><ol class="small"></ol></details>`;
-    pl.querySelector(".dn").textContent=d.name+" (najbliższa talia z apki z tą kartą)";const ps=pl.querySelectorAll("p");ps[0].textContent=d.mull;ps[1].textContent=d.rounds;
+    pl.querySelector(".dn").textContent=G.own?`${G.name} (Twoja talia; plan z „${d.name}”, wspólnych kart: ${G.overlap})`:d.name+" (najbliższa talia z apki z tą kartą)";const ps=pl.querySelectorAll("p");ps[0].textContent=d.mull;ps[1].textContent=d.rounds;
     (d.steps||[]).forEach(x=>{const li=document.createElement("li");li.textContent=x;pl.querySelector("ol").appendChild(li)});
     pl.querySelector("details").ontoggle=e=>{ui.liveOpen=e.target.open}}
+  if(G.cards){const dt=document.createElement("details");dt.open=ui.liveCards!==false;dt.innerHTML='<summary><b>Karty wg kolejności gry</b> <span class="small muted">co grać wcześnie, co trzymać na koniec</span></summary>';dt.appendChild(roleList(G,false));dt.ontoggle=()=>{ui.liveCards=dt.open};pl.appendChild(dt)}
   return el;
 }
+// --- własne talie z konta (playgwent builder_decks) ---
+const OVL=/[?&]overlay=1/.test(location.search);
+function facStr(x){x=String(x||"").toLowerCase();if(!x)return "";if(/^monst/.test(x))return "MO";if(/^nilf/.test(x))return "NG";if(/^north/.test(x)||/^nr$/.test(x))return "NR";if(/^scoia/.test(x)||x==="st")return "ST";if(/^skel/.test(x)||x==="sk")return "SK";if(/^synd/.test(x)||x==="sy")return "SY";if(/^(ng|mo)$/.test(x))return x.toUpperCase();return ""}
+function cardIdOf(x,depth){
+  if(x==null||depth>3)return null;
+  if(typeof x==="object"){for(const k of ["card_id","cardId","template_id","templateId","card_template_id","card_definition_id","definition_id","definitionId","card","id"]){if(x[k]!=null){const r=cardIdOf(x[k],(depth||0)+1);if(r)return r}}return null}
+  const s=String(x);if(CARD[s])return s;const n=+x;if(!isFinite(n))return null;const t=String(Math.floor(n/100));return CARD[t]?t:null;
+}
+function bigArray(o,depth){let best=null;if(!o||typeof o!=="object"||depth>3)return null;for(const k in o){const v=o[k];if(Array.isArray(v)){if(v.length>=8&&(!best||v.length>best.length))best=v}else if(v&&typeof v==="object"){const b=bigArray(v,depth+1);if(b&&(!best||b.length>best.length))best=b}}return best}
+let mdCache=[],mdSrc=null;
+function myDecks(){
+  if(!DS||!Array.isArray(DS.decksRaw))return [];
+  if(mdSrc===DS.decksRaw)return mdCache;mdSrc=DS.decksRaw;
+  mdCache=DS.decksRaw.map((d,i)=>{
+    const arr=bigArray(d,0)||[];const cnt={};
+    arr.forEach(x=>{const id=cardIdOf(x,0);if(!id)return;const n=(x&&typeof x==="object"&&+(x.count||x.amount||x.quantity||x.copies))||1;cnt[id]=Math.min((cnt[id]||0)+n,maxOf(CARD[id]))});
+    const cards=Object.entries(cnt);const fs={};cards.forEach(([id,n])=>{const f=CARD[id].f;if(f!=="NE")fs[f]=(fs[f]||0)+n});
+    const f=facStr(d.faction||d.faction_slug||d.factionSlug||(d.leader&&d.leader.faction))||Object.keys(fs).sort((a,b)=>fs[b]-fs[a])[0]||"NE";
+    const name=String(d.name||d.title||d.deck_name||d.deckName||("Talia "+(i+1)));
+    return {key:"own-"+(d.id||i),name,f,cards,golds:cards.filter(([id])=>CARD[id].g).map(([id])=>id)};
+  }).filter(d=>d.cards.length>=10);
+  return mdCache;
+}
+function ownDeckFor(gold,f){
+  const id=gold&&BYNAME[norm(gold)];if(!id)return null;
+  const c=myDecks().filter(d=>d.golds.includes(id)&&(!f||d.f===f));
+  return c.length?c[0]:null;
+}
+function bestGuide(cards,f){
+  // talia z apki, która ma najwięcej wspólnych kart: z niej bierzemy plan i wskazówki
+  const ids=new Set(cards.map(([id])=>String(id)));let best=null,bo=0;
+  DATA.decks.forEach(d=>{if(f&&d.f!==f)return;const o=d.cards.reduce((a,[id])=>a+(ids.has(String(id))?1:0),0);if(o>bo){bo=o;best=d}});
+  return best?{d:best,overlap:bo}:null;
+}
+function matchDeck(m){
+  const own=ownDeckFor(m.gold,m.faction);if(own)return {key:own.key,name:own.name,f:own.f};
+  if(!m.gold||!m.faction)return null;const id=BYNAME[norm(m.gold)];
+  return {key:m.faction+"|"+m.gold,name:(FAC[m.faction]?FAC[m.faction].n:"")+" · "+(id?CARD[id].pl:m.gold),f:m.faction};
+}
+// talia i plan na trwający mecz
+function liveGuide(L){
+  const g=liveDeck(L.gold);
+  const own=ownDeckFor(L.gold,g.f);
+  if(own){const bg=bestGuide(own.cards,own.f);return {f:own.f,gold:g.gold,card:g.card,name:own.name,own:true,cards:own.cards,guide:bg&&bg.overlap>=6?bg.d:null,overlap:bg?bg.overlap:0}}
+  if(g.deck)return {f:g.f||g.deck.f,gold:g.gold,card:g.card,name:g.deck.name,own:false,cards:g.deck.cards,guide:g.deck,overlap:25};
+  return {f:g.f,gold:g.gold,card:g.card};
+}
+const ROLE_ORD=["R1","SIL","COMBO","WYP","ODP","FIN"];
+function roleGroups(G){
+  const gr={};(G.cards||[]).forEach(([id,n])=>{const t=G.guide&&G.guide.tips&&G.guide.tips[id];const r=t?t[0]:"INNE";(gr[r]=gr[r]||[]).push({id,n,tip:t?t[1]:""})});
+  return [...ROLE_ORD,"INNE"].filter(r=>gr[r]).map(r=>({r,label:r==="INNE"?"Pozostałe":ROLE[r][0],hint:r==="INNE"?"Brak wskazówki w apce":ROLE[r][1],cards:gr[r].sort((a,b)=>CARD[b.id].p-CARD[a.id].p)}));
+}
+function roleList(G,compact){
+  const box=document.createElement("div");box.className="rgroups";
+  roleGroups(G).forEach(g=>{const h=document.createElement("div");h.className="rg";h.innerHTML=`<div class="rgh">${g.r==="INNE"?"":`<span class="role r-${g.r}">${g.label}</span>`}${g.r==="INNE"?`<b class="small">${g.label}</b>`:""} <span class="small muted">${g.hint}</span></div>`;
+    g.cards.forEach(c=>{const d=document.createElement("div");d.className="rc";d.innerHTML=`<span class="pv ${CARD[c.id].g?"g":"b"}">${CARD[c.id].p}</span><span><b></b>${!compact&&c.tip?'<span class="small muted"></span>':""}</span>`;d.querySelector("b").textContent=(c.n>1?c.n+"× ":"")+CARD[c.id].pl;if(!compact&&c.tip)d.querySelector(".small").textContent=" – "+c.tip;else if(c.tip)d.title=c.tip;h.appendChild(d)});
+    box.appendChild(h)});
+  return box;
+}
+
+// --- wykres rankingu ---
+function chartSVG(pts,color){
+  if(pts.length<2)return '<p class="small muted">Wykres pojawi się po co najmniej 2 meczach rankingowych.</p>';
+  const W=600,H=170,P=28;const vs=pts.map(p=>p.v);let lo=Math.min(...vs),hi=Math.max(...vs);if(hi-lo<20){const c=(hi+lo)/2;lo=c-10;hi=c+10}
+  const x=i=>P+(W-P*2)*i/(pts.length-1),y=v=>H-P-(H-P*2)*(v-lo)/(hi-lo);
+  const line=pts.map((p,i)=>`${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
+  const dots=pts.map((p,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="3.2" fill="${p.r==="W"?"var(--ok)":p.r==="L"?"var(--miss)":"var(--muted)"}"><title>${new Date(p.t).toLocaleString("pl-PL",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"})}: ${p.v}</title></circle>`).join("");
+  const last=pts[pts.length-1];
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Wykres: od ${pts[0].v} do ${last.v}">
+    <line x1="${P}" x2="${W-P}" y1="${y(hi)}" y2="${y(hi)}" class="gl"/><line x1="${P}" x2="${W-P}" y1="${y(lo)}" y2="${y(lo)}" class="gl"/>
+    <text x="${P-4}" y="${y(hi)+4}" text-anchor="end" class="ax">${Math.round(hi)}</text><text x="${P-4}" y="${y(lo)+4}" text-anchor="end" class="ax">${Math.round(lo)}</text>
+    <polyline points="${line}" fill="none" stroke="${color}" stroke-width="2.2" stroke-linejoin="round"/>${dots}
+    <text x="${x(pts.length-1)}" y="${y(last.v)-9}" text-anchor="end" class="lv">${last.v}</text></svg>`;
+}
+function chartPanel(all){
+  const rk=all.filter(m=>m.rating).slice(0,120).reverse();
+  const p=document.createElement("div");p.className="panel";
+  const facs=["NG","MO","NR","ST","SK","SY"].filter(f=>rk.some(m=>m.mmr&&m.mmr[f]&&m.faction===f));
+  ui.chart=ui.chart||"pts";if(ui.chart!=="pts"&&!facs.includes(ui.chart))ui.chart="pts";
+  let streak=0,sr=all[0]&&all[0].result;for(const m of all){if(m.result===sr)streak++;else break}
+  p.innerHTML=`<div class="row" style="justify-content:space-between"><h2>Ranking w czasie</h2><div class="filters ch"></div></div><div class="chbox"></div>
+    <p class="small muted">${streak>1?`Seria: <b>${streak} ${sr==="W"?"wygrane":"przegrane"}</b> z rzędu. `:""}Kropki: zielona wygrana, czerwona przegrana. MMR to ocena każdej frakcji. Punkty rankingu rosną też za kolejne gry frakcją (pełny MMR frakcji liczy się po 25 grach).</p>`;
+  [["pts","Punkty"],...facs.map(f=>[f,FAC[f].n])].forEach(([k,l])=>{const b=document.createElement("button");b.className="fbtn small";b.textContent=l;b.setAttribute("aria-pressed",ui.chart===k);b.onclick=()=>{ui.chart=k;renderMatches()};p.querySelector(".ch").appendChild(b)});
+  const pts=ui.chart==="pts"?rk.map(m=>({t:m.start,v:m.rating.to,r:m.result})):rk.filter(m=>m.faction===ui.chart&&m.mmr&&m.mmr[ui.chart]).map(m=>({t:m.start,v:m.mmr[ui.chart].to,r:m.result}));
+  p.querySelector(".chbox").innerHTML=chartSVG(pts,ui.chart==="pts"?"var(--accent)":fcol(ui.chart));
+  return p;
+}
+
+// --- ustawienia aplikacji ---
+function settingsPanel(){
+  const p=document.createElement("div");p.className="panel";
+  const st=(DS&&DS.settings)||{};
+  if(!DESK.setSetting){p.innerHTML='<h2>Okienko na wierzchu gry</h2><p class="small">Zamknij i otwórz aplikację, żeby pobrała nową wersję (1.2). Wtedy włączy się okienko z meczem na żywo i przypomnienia o zadaniach.</p>';return p}
+  p.innerHTML=`<h2>Ustawienia</h2>
+    <label class="row small"><input type="checkbox" class="s-ovl"${st.overlay!==false?" checked":""}> Okienko na wierzchu gry podczas meczu (rywal, plan, karty, zadania)</label>
+    <label class="row small"><input type="checkbox" class="s-rem"${st.remind!==false?" checked":""}> Przypomnienie o niezrobionych zadaniach dziennych (wieczorem)</label>
+    <div class="row"><button class="btn ghost small s-show">Pokaż okienko teraz</button></div>
+    <p class="small muted">Okienko widać nad grą, gdy Gwint działa w oknie albo w trybie „okno bez ramki”. W pełnym ekranie Windows może je chować. Przeciągnij je za górny pasek, zapamięta miejsce.</p>`;
+  p.querySelector(".s-ovl").onchange=e=>DESK.setSetting("overlay",e.target.checked);
+  p.querySelector(".s-rem").onchange=e=>DESK.setSetting("remind",e.target.checked);
+  p.querySelector(".s-show").onclick=()=>DESK.overlayShow();
+  return p;
+}
+
+// --- okienko na wierzchu (tryb overlay) ---
+function renderOverlay(){
+  let box=document.getElementById("ovlbox");
+  if(!box){box=document.createElement("div");box.id="ovlbox";document.body.appendChild(box)}
+  box.innerHTML="";
+  const all=(DS&&DS.matches)||[];const L=DS&&DS.live;
+  const head=document.createElement("div");head.className="ovh";
+  head.innerHTML=`<span class="ovt"></span><span class="mono ltimer"></span><button class="ovx" title="Schowaj do następnego meczu" aria-label="Schowaj">×</button>`;
+  head.querySelector(".ovx").onclick=()=>DESK.overlayHide&&DESK.overlayHide();
+  box.appendChild(head);
+  const body=document.createElement("div");body.className="ovb";box.appendChild(body);
+  if(!L){
+    const m=all[0];
+    head.querySelector(".ovt").textContent="Koniec meczu";
+    if(!m){body.innerHTML='<p class="small muted">Czekam na mecz…</p>';return}
+    body.innerHTML=`<div class="mbig"><span class="mres ${m.result}">${RESN[m.result]||"?"}</span><span class="small">vs <b class="nick"></b></span></div><div class="sumrow small">${ratingTxt(m)}${m.xp?`<span>+${m.xp} XP</span>`:""}<span>${mins(m)} min</span></div><div class="small qline"></div>`;
+    body.querySelector(".nick").textContent=oppNick(m);const qn=questNames(m);body.querySelector(".qline").textContent=qn?"Zaliczone: "+qn:"";
+    return;
+  }
+  head.querySelector(".ovt").innerHTML='<span class="livedot"></span>'+(MODEN[L.mode]||L.mode||"Mecz");
+  head.querySelector(".ltimer").dataset.start=L.start;
+  const opp=Object.values(L.players||{}).find(x=>x!==(DS&&DS.self))||"…";
+  const vs=all.filter(m=>oppNick(m)===opp),vsS=wl(vs);
+  const G=liveGuide(L);
+  const info=document.createElement("div");info.className="ovi";
+  info.innerHTML=`<div><b class="nick"></b> <span class="small muted">${vs.length?`bilans ${vsS.w}–${vsS.l}`:"nowy rywal"}</span></div><div class="small dn"></div>`;
+  info.querySelector(".nick").textContent="vs "+opp;
+  info.querySelector(".dn").textContent=G.name?(G.own?"Twoja talia: ":"Talia: ")+G.name:(G.f?FAC[G.f].n:"Talia nieznana");
+  body.appendChild(info);
+  const tabs=document.createElement("div");tabs.className="filters ovtabs";
+  let tab=null;try{tab=localStorage.getItem("gwint-ovtab")}catch(e){}tab=tab||"plan";
+  const qs=gameQuests().filter(q=>needLeft(q)&&q.k!=="other"&&(!q.f||!G.f||q.f===G.f));
+  [["plan","Plan"],["karty","Karty"],["zad","Zadania"+(qs.length?" ("+qs.length+")":"")]].forEach(([k,l])=>{const b=document.createElement("button");b.className="fbtn small";b.textContent=l;b.setAttribute("aria-pressed",tab===k);b.onclick=()=>{try{localStorage.setItem("gwint-ovtab",k)}catch(e){}renderOverlay()};tabs.appendChild(b)});
+  body.appendChild(tabs);
+  const c=document.createElement("div");c.className="ovc small";body.appendChild(c);
+  if(tab==="plan"){
+    if(G.guide){const d=G.guide;c.innerHTML=`<div class="label">Mulligan</div><p></p><div class="label">Rundy</div><p></p><ol></ol>`;const ps=c.querySelectorAll("p");ps[0].textContent=d.mull;ps[1].textContent=d.rounds;(d.steps||[]).forEach(x=>{const li=document.createElement("li");li.textContent=x;c.querySelector("ol").appendChild(li)});
+      if(G.own&&G.overlap<25){const n=document.createElement("p");n.className="muted";n.textContent=`Plan z talii „${d.name}” (wspólnych kart: ${G.overlap}).`;c.appendChild(n)}}
+    else c.innerHTML='<p class="muted">Nie mam planu dla tej talii. Zsynchronizuj kolekcję, żeby apka znała Twoje talie.</p>';
+  }else if(tab==="karty"){
+    if(G.cards)c.appendChild(roleList(G,true));else c.innerHTML='<p class="muted">Nie znam jeszcze kart tej talii.</p>';
+  }else{
+    c.innerHTML=qs.length?"":'<p class="muted">Brak zadań do zrobienia tą frakcją.</p>';
+    qs.forEach(q=>{const d=document.createElement("div");d.className="ovq";d.textContent=`${gqDesc(q)} · ${q.prog}/${q.n}`;c.appendChild(d)});
+  }
+}
+
 function oppSelect(sel,m,tags){
   sel.innerHTML='<option value="">rywal: ?</option>'+["NG","MO","NR","ST","SK","SY"].map(f=>`<option value="${f}"${tags[m.id]===f?" selected":""}>${FAC[f].n}</option>`).join("");
   sel.onchange=e=>{const f=e.target.value;if(DS){if(f)DS.oppTags[m.id]=f;else delete DS.oppTags[m.id]}DESK.tagOpp(m.id,f)};
@@ -988,15 +1152,27 @@ if(DESK){
 .mlive{border:2px solid var(--accent);border-left-width:6px;border-left-color:var(--fc)}
 .livedot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--miss);margin-right:6px;animation:lp 1.2s infinite}
 @keyframes lp{50%{opacity:.25}}.mlive details summary{cursor:pointer;margin:6px 0}.mlive ol{margin:6px 0 0;padding-left:1.2em}
+.mstat.dk .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart{width:100%;height:auto;display:block}.chart .gl{stroke:var(--line);stroke-dasharray:3 4}.chart .ax{fill:var(--muted);font:11px var(--f-mono)}.chart .lv{fill:var(--ink);font:600 12px var(--f-mono)}
+.rgroups{display:grid;gap:8px;margin-top:6px}.rgh{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;margin-bottom:2px}
+.rc{display:flex;gap:8px;align-items:baseline;padding:2px 0}.rc .pv{min-width:1.9em;text-align:center;font:600 .8rem var(--f-mono);border-radius:5px;padding:0 3px;background:var(--sunk)}.rc .pv.g{color:var(--gold)}.rc .pv.b{color:var(--bronze)}
+.ovl body{padding:0!important;overflow:hidden}.ovl .wrap,.ovl .toast,.ovl #updbar{display:none!important}
+#ovlbox{display:flex;flex-direction:column;height:100vh;font-size:14px;background:var(--bg);border:1px solid var(--line)}
+.ovh{display:flex;align-items:center;gap:8px;padding:6px 8px 6px 10px;background:var(--surface);border-bottom:1px solid var(--line);-webkit-app-region:drag;user-select:none}
+.ovh .ovt{flex:1;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.ovh .ltimer{font-size:.85rem}
+.ovx{-webkit-app-region:no-drag;background:none;border:0;color:var(--muted);font-size:20px;line-height:1;cursor:pointer;padding:0 4px}.ovx:hover{color:var(--ink)}
+.ovb{flex:1;overflow:auto;padding:8px 10px;display:grid;gap:6px;align-content:start}.ovb .mbig{font-size:1.1rem}.ovtabs{gap:4px}
+.ovc p{margin:2px 0 6px}.ovc ol{margin:4px 0;padding-left:1.1em}.ovq{padding:4px 6px;border-radius:6px;background:var(--sunk);margin-bottom:4px}
 .mst .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.mst .bar i{display:block;height:100%;background:var(--fc)}
 @media(max-width:520px){.mrow{grid-template-columns:auto auto 1fr}.mrow .opp{grid-column:1/-1;grid-row:auto;max-width:none}}`;
   document.head.appendChild(css);
   document.documentElement.classList.add("desktop");
-  const refresh=()=>{gqCache=null;if(["zadania","mecze","kolekcja"].includes(ui.view))render();else renderDeskSync()};
+  if(OVL){document.documentElement.classList.add("ovl");try{document.documentElement.setAttribute("data-theme",localStorage.getItem("gwint-theme")==="light"?"light":"dark")}catch(e){}}
+  const refresh=()=>{gqCache=null;if(OVL){renderOverlay();return}if(["zadania","mecze","kolekcja"].includes(ui.view))render();else renderDeskSync()};
   let liveStart=null;
-  const onState=s=>{const ls=s.live&&s.live.start;DS=s;gqCache=null;if(ls&&ls!==liveStart){liveStart=ls;if(ui.view!=="mecze"){go("mecze");return}}liveStart=ls||null;refresh()};
+  const onState=s=>{const ls=s.live&&s.live.start;DS=s;gqCache=null;if(ls&&ls!==liveStart){liveStart=ls;if(!OVL&&ui.view!=="mecze"){go("mecze");return}}liveStart=ls||null;refresh()};
   DESK.on("state",onState);
-  setInterval(()=>{const t=document.querySelector(".ltimer");if(!t)return;const s=Math.max(0,Math.floor((Date.now()-+t.dataset.start)/1000));t.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0")},1000);
+  setInterval(()=>{const t=document.querySelector(".ltimer");if(!t||!t.dataset.start)return;const s=Math.max(0,Math.floor((Date.now()-+t.dataset.start)/1000));t.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0")},1000);
   DESK.on("collection",ids=>{
     const cnt={};ids.forEach(x=>{x=String(x);cnt[x]=(cnt[x]||0)+1});
     const before=owned;const next={};let added=0;
@@ -1012,6 +1188,44 @@ if(DESK){
   DESK.on("show",d=>{if(d&&d.id)ui.mFocus=d.id;go((d&&d.view)||"mecze")});
   DESK.getState().then(onState).catch(()=>{});
   $("#emptyBtn").onclick=()=>{go("kolekcja");DESK.login()};
+}
+
+// --- doradca craftu (działa też na stronie i w telefonie) ---
+function craftPlan(budget){
+  const ms=((DS&&DS.matches)||[]).filter(m=>m.start>Date.now()-30*864e5);const fw={};ms.forEach(m=>{if(m.faction)fw[m.faction]=(fw[m.faction]||0)+1});
+  const wf=f=>ms.length?0.5+3*(fw[f]||0)/ms.length:1;
+  const E={};
+  DATA.decks.forEach(d=>{const s=deckStats(d);if(!s.missCards)return;const dv=TIER[d.t].w*wf(d.f)*(0.4+s.pct)*(d.b?1.15:1);
+    d.cards.forEach(([id,n])=>{const miss=n-Math.min(owned[id]||0,n);if(miss<=0)return;const e=E[id]=E[id]||{id,copies:0,score:0,decks:[],quests:0};e.copies=Math.max(e.copies,miss);e.score+=dv;e.decks.push(d.name)})});
+  const act=(typeof allQuests==="function"?allQuests():[]).filter(q=>needLeft(q)>0&&(q.k==="play"||q.k==="deck")&&(q.ids||q.sets.length||q.cat||q.t||q.kw||q.rar||q.dmg||q.g!==""));
+  Object.values(E).forEach(e=>{const c=CARD[e.id];act.forEach(q=>{if(qMatch(c,q)){e.score+=0.15;e.quests++}});e.cost=e.copies*SCRAP[c.r];e.rank=e.score/Math.sqrt(e.cost)});
+  const list=Object.values(E).sort((a,b)=>b.rank-a.rank);
+  let left=budget;list.forEach(e=>{e.fits=e.cost<=left;if(e.fits)left-=e.cost});
+  const decks=DATA.decks.map(d=>({d,s:deckStats(d)})).filter(x=>x.s.scrap>0&&x.s.scrap<=budget).sort((a,b)=>a.d.t-b.d.t||a.s.scrap-b.s.scrap);
+  return {list,decks,spent:budget-left,fw:ms.length?fw:null};
+}
+function renderCraft(){
+  const p=document.getElementById("craftPanel");if(!p)return;
+  let b=0;try{b=+localStorage.getItem("gwint-scraps")||0}catch(e){}
+  if(!p.dataset.ready){p.dataset.ready=1;
+    p.innerHTML=`<div class="row" style="justify-content:space-between"><h2>Co scraftować</h2><label class="small">Mam skrawków: <input type="number" id="scrapIn" min="0" step="10" style="width:6.5em"></label></div><div id="craftOut"></div>`;
+    const inp=p.querySelector("#scrapIn");inp.value=b||"";
+    let t=null;inp.oninput=()=>{clearTimeout(t);t=setTimeout(()=>{try{localStorage.setItem("gwint-scraps",String(+inp.value||0))}catch(e){}renderCraft()},250)}}
+  const out=p.querySelector("#craftOut");out.innerHTML="";
+  if(!Object.keys(owned).length){out.innerHTML='<p class="empty">Najpierw wczytaj kolekcję.</p>';return}
+  const P=craftPlan(b);
+  const intro=document.createElement("p");intro.className="small muted";
+  intro.textContent="Ranking łączy siłę talii, to, jak blisko jesteś jej dokończenia, ile kosztuje karta"+(P.fw?", którymi frakcjami grasz najczęściej (30 dni)":"")+" i Twoje zadania."+(b?"":" Wpisz liczbę skrawków, a zaznaczę, na co Cię stać.");
+  out.appendChild(intro);
+  if(b&&P.decks.length){const d=document.createElement("p");d.className="small";d.innerHTML="<b>Każdą z tych talii dokończysz od razu:</b> ";d.append(P.decks.slice(0,4).map(x=>`${x.d.name} (${fmt(x.s.scrap)})`).join(" · "));out.appendChild(d)}
+  const cl=document.createElement("div");cl.className="clist";
+  P.list.slice(0,15).forEach((e,i)=>{const c=CARD[e.id];const r=document.createElement("div");r.className="crow "+(b&&e.fits?"have":"miss");
+    r.innerHTML=`<div class="pv ${c.g?"g":"b"}">${c.p}</div><div class="cname"><div><b></b></div><div class="small muted dd"></div></div><div class="own"><span class="need mono">${fmt(e.cost)}</span></div>`;
+    r.querySelector("b").textContent=(i+1)+". "+(e.copies>1?"2× ":"")+c.pl;
+    const ds=[...new Set(e.decks)];r.querySelector(".dd").textContent=`${RAR[c.r]} · ${FAC[c.f].n} · w taliach: ${ds.slice(0,3).join(", ")}${ds.length>3?` i ${ds.length-3} innych`:""}${e.quests?` · pasuje do ${e.quests} ${e.quests===1?"zadania":"zadań"}`:""}`;
+    cl.appendChild(r)});
+  out.appendChild(cl);
+  if(b){const s=document.createElement("p");s.className="small muted";s.textContent=`Zielone mieszczą się razem w budżecie (${fmt(P.spent)} z ${fmt(b)} skrawków).`;out.appendChild(s)}
 }
 
 // start

@@ -11,5 +11,8 @@ if (ok) {
     logout: () => ipcRenderer.send('logout'),
     tagOpp: (id, f) => ipcRenderer.invoke('tagOpp', id, f),
     openLogDir: () => ipcRenderer.send('openLogDir'),
+    overlayHide: () => ipcRenderer.send('overlayHide'),
+    overlayShow: () => ipcRenderer.send('overlayShow'),
+    setSetting: (k, v) => ipcRenderer.send('setSetting', k, v),
   });
 }

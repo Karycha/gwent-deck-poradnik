@@ -182,6 +182,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
   </section>
 
   <section id="v-kolekcja" hidden style="display:grid;gap:14px">
+    <div class="panel" id="craftPanel"></div>
     <div class="panel">
       <div class="row" style="justify-content:space-between">
         <h2>Moje karty</h2>
@@ -308,6 +309,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>2.2</b> Co scraftować: wpisujesz liczbę skrawków, apka podpowiada najlepsze karty i talie do dokończenia. W aplikacji na komputer: okienko na wierzchu gry z planem, kartami wg kolejności gry i zadaniami; wykres punktów rankingu i MMR; statystyki dla każdej talii; wieczorne przypomnienie o zadaniach dziennych.</li>
         <li><b>2.1</b> Tryb ciemny (przycisk „Motyw” na górze; w aplikacji na komputer domyślnie ciemny). Mecze na żywo: gdy zaczynasz grę, apka pokazuje rywala, Wasz bilans, zadania do zrobienia i plan gry dla Twojej talii. Po meczu: zmiana punktów rankingu, ranga i MMR frakcji.</li>
         <li><b>2.0</b> Aplikacja na komputer (Windows): sama pobiera nowe karty z konta GOG, zapisuje Twoje mecze i podsumowanie po każdej grze, a zadania z gry pojawiają się same w zakładce Zadania. Nowa zakładka Mecze.</li>
         <li><b>1.9</b> Synchronizacja kolekcji jednym kliknięciem z playgwent.com przez zakładkę „Gwint → Warsztat”.</li>
@@ -494,6 +496,7 @@ function render(){
   if(ui.view==="zadania")renderQuests();
   if(ui.view==="mecze"&&typeof renderMatches==="function")renderMatches();
   if(typeof renderDeskSync==="function")renderDeskSync();
+  if(ui.view==="kolekcja"&&typeof renderCraft==="function")renderCraft();
 }
 function go(v){ui.view=v;try{if(location.hash!=="#"+v)history.replaceState(null,"","#"+v)}catch(e){}render();window.scrollTo({top:0})}
 

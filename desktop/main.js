@@ -17,7 +17,7 @@ const FAC = { NG: 'Nilfgaard', MO: 'Potwory', NR: 'Królestwa Północy', ST: "S
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 
 let win = null;
-let store = { matches: {}, quests: {}, defs: {}, oppTags: {}, self: null, lastLogin: 0, lastSync: 0, syncCount: 0, syncStatus: 'idle' };
+let store = { matches: {}, quests: {}, defs: {}, oppTags: {}, self: null, lastLogin: 0, lastSync: 0, syncCount: 0, syncStatus: 'idle', decksRaw: null, stateKeys: null, settings: { overlay: true, remind: true }, overlayPos: null, lastRemind: '' };
 const storeFile = () => path.join(app.getPath('userData'), 'store.json');
 function loadStore() {
   try { store = Object.assign(store, JSON.parse(fs.readFileSync(storeFile(), 'utf8'))); } catch (e) {}
@@ -67,10 +67,57 @@ function onMatch(m) {
   pushState();
 }
 let live = null;
+let lastEndedId = null;
 function onLive(d) {
-  if (d.phase === 'end') { live = null; }
+  if (d.phase === 'end') { live = null; lastEndedId = d.id || null; }
   else { live = Object.assign({}, live && live.start === d.start ? live : {}, d); }
-  if (!initialScan) pushState();
+  if (!initialScan) { pushState(); updateOverlay(d.phase === 'end'); }
+}
+
+// ---------- okienko na wierzchu ----------
+let ovl = null, ovlHideT = null, ovlDismissed = null;
+function updateOverlay(ended) {
+  if (!store.settings.overlay) { closeOverlay(); return; }
+  if (live) {
+    if (ovlDismissed === live.start) return;
+    clearTimeout(ovlHideT); openOverlay();
+  } else if (ended && ovl && !ovl.isDestroyed()) {
+    clearTimeout(ovlHideT); ovlHideT = setTimeout(closeOverlay, 25000);
+  }
+}
+function openOverlay() {
+  if (ovl && !ovl.isDestroyed()) { if (!ovl.isVisible()) ovl.showInactive(); return; }
+  const { screen } = require('electron');
+  const wa = screen.getPrimaryDisplay().workArea;
+  const W = 340, H = 300;
+  const pos = store.overlayPos || { x: wa.x + wa.width - W - 16, y: wa.y + 80 };
+  ovl = new BrowserWindow({ x: pos.x, y: pos.y, width: W, height: H, minWidth: 260, minHeight: 120, frame: false, resizable: true, alwaysOnTop: true, skipTaskbar: true, show: false,
+    backgroundColor: '#11141A', title: 'Warsztat Gwinta – mecz', focusable: true,
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, partition: 'persist:app' } });
+  ovl.setAlwaysOnTop(true, 'screen-saver');
+  ovl.setVisibleOnAllWorkspaces(true);
+  ovl.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  ovl.webContents.on('will-navigate', e => e.preventDefault());
+  ovl.once('ready-to-show', () => ovl.showInactive());
+  ovl.on('moved', () => { if (ovl && !ovl.isDestroyed()) { const b = ovl.getBounds(); store.overlayPos = { x: b.x, y: b.y }; save(); } });
+  ovl.on('closed', () => { ovl = null; });
+  ovl.loadURL(APP_URL + '?desktop=1&overlay=1');
+}
+function closeOverlay() { clearTimeout(ovlHideT); if (ovl && !ovl.isDestroyed()) ovl.close(); ovl = null; }
+
+// ---------- przypomnienia o zadaniach ----------
+function remindQuests() {
+  if (!store.settings.remind || !Notification.isSupported()) return;
+  const now = new Date(); const day = now.toISOString().slice(0, 10);
+  if (now.getHours() < 19 || store.lastRemind === day) return;
+  const left = currentQuests().filter(q => q.kind === 'daily_quest' && (q.cur || 0) < (q.value || 1));
+  if (!left.length) return;
+  store.lastRemind = day; save();
+  const txt = left.map(q => { const n = (q.value || 1) - (q.cur || 0); const f = q.factions && q.factions.length === 1 ? ' ' + (FAC[q.factions[0]] || '') : '';
+    return q.type === 'finish_game' ? `${n}× wygrana${f}` : `${n} kart do zagrania`; }).join(', ');
+  const n = new Notification({ title: 'Niezrobione zadania dzienne', body: txt + '\nKliknij, żeby zobaczyć plan.' });
+  n.on('click', () => { if (win) { win.show(); win.focus(); win.webContents.send('show', { view: 'zadania' }); } });
+  n.show();
 }
 function oppOf(m) { const n = Object.values(m.players || {}); return n.find(x => x !== store.self) || n[0] || '?'; }
 function notifyMatch(m) {
@@ -108,8 +155,8 @@ function scanLogs() {
       } catch (e) {}
     }
   }
-  if (live && Date.now() - live.start > 45 * 60000) { live = null; pushState(); }
-  if (initialScan) { initialScan = false; pushState(); }
+  if (live && Date.now() - live.start > 45 * 60000) { live = null; pushState(); closeOverlay(); }
+  if (initialScan) { initialScan = false; pushState(); if (live) updateOverlay(false); }
 }
 
 // ---------- synchronizacja kolekcji ----------
@@ -126,7 +173,11 @@ function syncCollection(show) {
     const url = w.webContents.getURL();
     if (!/playgwent\.com\/[a-z-]+\/decks\/builder/.test(url)) return;
     let ids = null;
-    try { ids = await w.webContents.executeJavaScript(`(()=>{const r=document.getElementById('root');if(!r||!r.dataset.state)return null;const s=JSON.parse(r.dataset.state);return s.user_cards||null})()`); } catch (e) {}
+    let res = null;
+    try { res = await w.webContents.executeJavaScript(`(()=>{const r=document.getElementById('root');if(!r||!r.dataset.state)return null;const s=JSON.parse(r.dataset.state);const d=s.builder_decks||s.user_decks||null;return {cards:s.user_cards||null,decks:d,keys:Object.keys(s)}})()`); } catch (e) {}
+    ids = res && res.cards;
+    if (res && res.keys) store.stateKeys = res.keys;
+    if (res && Array.isArray(res.decks) && res.decks.length) { const j = JSON.stringify(res.decks); if (j.length < 1500000) store.decksRaw = res.decks; }
     if (ids && ids.length) {
       clearTimeout(timeout);
       store.lastSync = Date.now(); store.syncCount = new Set(ids).size; store.syncStatus = 'ok'; save();
@@ -144,10 +195,10 @@ function syncCollection(show) {
 function statePayload() {
   return { version: app.getVersion(), self: store.self, logFound: !!store.logFound, logDir: LOG_DIR,
     matches: Object.values(store.matches).filter(m => m.result).sort((a, b) => b.start - a.start).slice(0, 500),
-    oppTags: store.oppTags, quests: currentQuests(), live, lastSync: store.lastSync, syncCount: store.syncCount, syncStatus: store.syncStatus };
+    oppTags: store.oppTags, quests: currentQuests(), live, lastEnded: lastEndedId, decksRaw: store.decksRaw, stateKeys: store.stateKeys, settings: store.settings, lastSync: store.lastSync, syncCount: store.syncCount, syncStatus: store.syncStatus };
 }
 let pushT = null;
-function pushState() { clearTimeout(pushT); pushT = setTimeout(() => { if (win && !win.isDestroyed()) win.webContents.send('state', statePayload()); }, 150); }
+function pushState() { clearTimeout(pushT); pushT = setTimeout(() => { const p = statePayload(); if (win && !win.isDestroyed()) win.webContents.send('state', p); if (ovl && !ovl.isDestroyed()) ovl.webContents.send('state', p); }, 150); }
 
 function createWindow() {
   win = new BrowserWindow({ width: 1200, height: 900, minWidth: 420, title: 'Warsztat Gwinta', backgroundColor: '#11141A', autoHideMenuBar: true,
@@ -165,10 +216,13 @@ ipcMain.handle('state', () => statePayload());
 ipcMain.on('sync', (e, opts) => syncCollection(!!(opts && opts.show)));
 ipcMain.handle('tagOpp', (e, id, f) => { if (f) store.oppTags[id] = f; else delete store.oppTags[id]; save(); pushState(); return true; });
 ipcMain.on('openLogDir', () => shell.openPath(LOG_DIR));
+ipcMain.on('overlayHide', () => { ovlDismissed = live ? live.start : null; closeOverlay(); });
+ipcMain.on('overlayShow', () => { ovlDismissed = null; openOverlay(); });
+ipcMain.on('setSetting', (e, k, v) => { if (['overlay', 'remind'].includes(k)) { store.settings[k] = !!v; save(); if (k === 'overlay') updateOverlay(false); pushState(); } });
 ipcMain.on('logout', async () => {
   const { session } = require('electron');
   await session.fromPartition('persist:gog').clearStorageData();
-  store.lastSync = 0; store.syncStatus = 'login'; save(); pushState();
+  store.lastSync = 0; store.syncStatus = 'login'; store.decksRaw = null; save(); pushState();
 });
 
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
@@ -180,6 +234,7 @@ app.whenReady().then(() => {
   createWindow();
   scanLogs();
   setInterval(scanLogs, 3000);
+  setInterval(remindQuests, 10 * 60 * 1000); setTimeout(remindQuests, 60000);
   setTimeout(() => syncCollection(false), 4000);
   setInterval(() => syncCollection(false), 30 * 60 * 1000);
   if (app.isPackaged) {
