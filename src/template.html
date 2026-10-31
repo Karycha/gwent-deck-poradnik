@@ -144,7 +144,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
       <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja __VERSION__</span></div>
       <h1>Warsztat Gwinta</h1>
     </div>
-    <div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div>
+    <div class="row" style="gap:10px"><button class="btn ghost small" id="themeBtn" aria-label="Zmień motyw">Motyw</button><div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div></div>
   </header>
 
   <div class="updbar" id="updbar" hidden role="status"><span id="updtxt">Jest nowa wersja.</span><button class="btn" id="updBtn">Aktualizuj</button></div>
@@ -308,6 +308,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>2.1</b> Tryb ciemny (przycisk „Motyw” na górze; w aplikacji na komputer domyślnie ciemny). Mecze na żywo: gdy zaczynasz grę, apka pokazuje rywala, Wasz bilans, zadania do zrobienia i plan gry dla Twojej talii. Po meczu: zmiana punktów rankingu, ranga i MMR frakcji.</li>
         <li><b>2.0</b> Aplikacja na komputer (Windows): sama pobiera nowe karty z konta GOG, zapisuje Twoje mecze i podsumowanie po każdej grze, a zadania z gry pojawiają się same w zakładce Zadania. Nowa zakładka Mecze.</li>
         <li><b>1.9</b> Synchronizacja kolekcji jednym kliknięciem z playgwent.com przez zakładkę „Gwint → Warsztat”.</li>
         <li><b>1.8.3</b> Lepsze odczytywanie zestawów ze screena. Przy każdym zadaniu możesz klikać zestawy, żeby poprawić odczyt.</li>
@@ -512,6 +513,13 @@ function copyText(t,msg){
   function fallback(){const ta=$("#expTxt");ta.hidden=false;ta.value=t;ta.focus();ta.select();toast("Zaznaczyłem tekst – skopiuj go ręcznie")}
 }
 
+// motyw
+const TKEY="gwint-theme",TNAME={auto:"Motyw: jak system",dark:"Motyw: ciemny",light:"Motyw: jasny"};
+let theme=null;try{theme=localStorage.getItem(TKEY)}catch(e){}
+if(!TNAME[theme])theme=(window.gwentDesktop||/[?&]desktop=1/.test(location.search))?"dark":"auto";
+function applyTheme(){const r=document.documentElement;if(theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",theme);$("#themeBtn").textContent=TNAME[theme];const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=getComputedStyle(document.body).backgroundColor}
+applyTheme();
+$("#themeBtn").onclick=()=>{theme={auto:"dark",dark:"light",light:"auto"}[theme];try{localStorage.setItem(TKEY,theme)}catch(e){}applyTheme()};
 // zdarzenia
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>go(t.dataset.v));
 $("#sortSel").onchange=e=>{ui.sort=e.target.value;renderDecks()};

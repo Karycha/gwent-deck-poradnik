@@ -132,10 +132,10 @@ textarea{width:100%;min-height:96px;resize:vertical}
 </style><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body><div class="wrap">
   <header class="top">
     <div>
-      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 2.0</span></div>
+      <div class="label">Gwint · meta po Radzie z 1.10.2026 · <span class="mono">wersja 2.1</span></div>
       <h1>Warsztat Gwinta</h1>
     </div>
-    <div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div>
+    <div class="row" style="gap:10px"><button class="btn ghost small" id="themeBtn" aria-label="Zmień motyw">Motyw</button><div class="status"><span class="dot" id="sdot"></span><span id="stext">Wczytuję…</span></div></div>
   </header>
 
   <div class="updbar" id="updbar" hidden role="status"><span id="updtxt">Jest nowa wersja.</span><button class="btn" id="updBtn">Aktualizuj</button></div>
@@ -299,6 +299,7 @@ textarea{width:100%;min-height:96px;resize:vertical}
     <section>
       <h2>Co nowego</h2>
       <ul class="small">
+        <li><b>2.1</b> Tryb ciemny (przycisk „Motyw” na górze; w aplikacji na komputer domyślnie ciemny). Mecze na żywo: gdy zaczynasz grę, apka pokazuje rywala, Wasz bilans, zadania do zrobienia i plan gry dla Twojej talii. Po meczu: zmiana punktów rankingu, ranga i MMR frakcji.</li>
         <li><b>2.0</b> Aplikacja na komputer (Windows): sama pobiera nowe karty z konta GOG, zapisuje Twoje mecze i podsumowanie po każdej grze, a zadania z gry pojawiają się same w zakładce Zadania. Nowa zakładka Mecze.</li>
         <li><b>1.9</b> Synchronizacja kolekcji jednym kliknięciem z playgwent.com przez zakładkę „Gwint → Warsztat”.</li>
         <li><b>1.8.3</b> Lepsze odczytywanie zestawów ze screena. Przy każdym zadaniu możesz klikać zestawy, żeby poprawić odczyt.</li>
@@ -503,6 +504,13 @@ function copyText(t,msg){
   function fallback(){const ta=$("#expTxt");ta.hidden=false;ta.value=t;ta.focus();ta.select();toast("Zaznaczyłem tekst – skopiuj go ręcznie")}
 }
 
+// motyw
+const TKEY="gwint-theme",TNAME={auto:"Motyw: jak system",dark:"Motyw: ciemny",light:"Motyw: jasny"};
+let theme=null;try{theme=localStorage.getItem(TKEY)}catch(e){}
+if(!TNAME[theme])theme=(window.gwentDesktop||/[?&]desktop=1/.test(location.search))?"dark":"auto";
+function applyTheme(){const r=document.documentElement;if(theme==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",theme);$("#themeBtn").textContent=TNAME[theme];const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=getComputedStyle(document.body).backgroundColor}
+applyTheme();
+$("#themeBtn").onclick=()=>{theme={auto:"dark",dark:"light",light:"auto"}[theme];try{localStorage.setItem(TKEY,theme)}catch(e){}applyTheme()};
 // zdarzenia
 document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>go(t.dataset.v));
 $("#sortSel").onchange=e=>{ui.sort=e.target.value;renderDecks()};
@@ -547,7 +555,7 @@ const standalonePage=!/claude\.ai|claudeusercontent|anthropic/.test(location.hos
 if(standalonePage){
   const l=document.createElement("link");l.rel="manifest";l.href="manifest.webmanifest";document.head.appendChild(l);
   const ic=document.createElement("link");ic.rel="apple-touch-icon";ic.href="icons/icon-192.png";document.head.appendChild(ic);
-  const APPV="2.0";
+  const APPV="2.1";
   let swReg=null;
   if("serviceWorker" in navigator)navigator.serviceWorker.register("sw.js").then(r=>{swReg=r}).catch(()=>{});
   const newer=(a,b)=>{const x=a.split(".").map(Number),y=b.split(".").map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){if((x[i]||0)!==(y[i]||0))return (x[i]||0)>(y[i]||0)}return false};
@@ -875,10 +883,12 @@ function renderMatches(){
   }
   const all=(DS&&DS.matches)||[];
   const tags=(DS&&DS.oppTags)||{};
-  if(!all.length){box.innerHTML=`<div class="panel"><h2>Mecze</h2><p class="empty">${DS&&DS.logFound?"Jeszcze nie ma meczów. Zagraj w Gwinta, a wynik pojawi się tu sam.":"Nie widzę logu gry. Uruchom Gwinta na tym komputerze."}</p></div>`;return}
+  if(!all.length&&!DS.live){box.innerHTML=`<div class="panel"><h2>Mecze</h2><p class="empty">${DS&&DS.logFound?"Jeszcze nie ma meczów. Zagraj w Gwinta, a wynik pojawi się tu sam.":"Nie widzę logu gry. Uruchom Gwinta na tym komputerze."}</p></div>`;return}
+  if(DS.live)box.appendChild(liveCard(DS.live,all));
   ui.mper=ui.mper||"7";
   const cut=ui.mper==="all"?0:ui.mper==="1"?new Date().setHours(0,0,0,0):Date.now()-7*864e5;
   const list=all.filter(m=>m.start>=cut);
+  if(!all.length)return;
   // ostatni mecz
   const m0=all.find(m=>m.id===ui.mFocus)||all[0];
   const last=document.createElement("div");last.className="panel mlast "+(m0.result||"");
@@ -886,7 +896,7 @@ function renderMatches(){
   const vs=all.filter(m=>oppNick(m)===oppNick(m0)),vsS=wl(vs);
   last.innerHTML=`<div class="row" style="justify-content:space-between"><span class="label">${m0===all[0]?"Ostatni mecz":"Mecz"} · ${dayLabel(m0.start)} ${fmtT(m0.start)}</span><span class="small muted">${MODEN[m0.mode]||m0.mode}</span></div>
     <div class="mbig"><span class="mres ${m0.result}">${RESN[m0.result]||"?"}</span><span class="fchip">${FAC[m0.faction]?FAC[m0.faction].n:"?"}</span><span>vs <b class="nick"></b></span></div>
-    <div class="sumrow"><span>Czas: <b>${mins(m0)} min</b></span>${m0.xp?`<span>Doświadczenie: <b>+${m0.xp}</b></span>`:""}${m0.rank?`<span>Ranking: <b>${m0.rank.pieces}/${m0.rank.max}</b> (poziom ${m0.rank.tier})</span>`:""}${vs.length>1?`<span>Z tym graczem: <b>${vsS.w}–${vsS.l}</b></span>`:""}</div>
+    <div class="sumrow"><span>Czas: <b>${mins(m0)} min</b></span>${m0.xp?`<span>Doświadczenie: <b>+${m0.xp}</b></span>`:""}${ratingTxt(m0)}${m0.rank&&!m0.rating?`<span>Ranking: <b>${m0.rank.pieces}/${m0.rank.max}</b> (poziom ${m0.rank.tier})</span>`:""}${vs.length>1?`<span>Z tym graczem: <b>${vsS.w}–${vsS.l}</b></span>`:""}</div>
     <div class="small qline"></div>
     <label class="small">Frakcja rywala: <select class="opp"></select></label>`;
   last.querySelector(".nick").textContent=oppNick(m0);
@@ -897,13 +907,13 @@ function renderMatches(){
   const sp=document.createElement("div");sp.className="panel";
   const S=wl(list);
   sp.innerHTML=`<div class="row" style="justify-content:space-between"><h2>Statystyki</h2><div class="filters per"></div></div>
-    <div class="sumrow"><span>Mecze: <b>${S.n}</b></span><span>Bilans: <b>${S.w}–${S.l}</b></span><span>Wygrane: <b>${S.pct}%</b></span></div>
+    <div class="sumrow"><span>Mecze: <b>${S.n}</b></span><span>Bilans: <b>${S.w}–${S.l}</b></span><span>Wygrane: <b>${S.pct}%</b></span>${(()=>{const r=all.find(m=>m.rating);return r?`<span>Punkty rankingu: <b>${r.rating.to}</b>${r.srank?` · ranga <b>${r.srank.to}</b>`:""}</span>`:""})()}</div>
     <div class="grid2"><div><div class="label">Moje frakcje</div><div class="mstat my"></div></div><div><div class="label">Frakcje rywali</div><div class="mstat op"></div></div></div>`;
   [["1","Dziś"],["7","7 dni"],["all","Wszystko"]].forEach(([k,l])=>{const b=document.createElement("button");b.className="fbtn";b.textContent=l;b.setAttribute("aria-pressed",ui.mper===k);b.onclick=()=>{ui.mper=k;renderMatches()};sp.querySelector(".per").appendChild(b)});
   const statRows=(el,key)=>{const by={};list.forEach(m=>{const f=key(m);if(f)(by[f]=by[f]||[]).push(m)});
     const ks=Object.keys(by).sort((a,b)=>by[b].length-by[a].length);
     if(!ks.length){el.innerHTML='<p class="small muted">'+(el.classList.contains("op")?"Zaznacz frakcję rywala przy meczach, a pojawi się tu bilans.":"Brak danych.")+"</p>";return}
-    ks.forEach(f=>{const s=wl(by[f]);const r=document.createElement("div");r.className="mst";r.style.setProperty("--fc",fcol(f));r.innerHTML=`<span class="sw"></span><span class="nm">${FAC[f].n}</span><span class="mono">${s.w}–${s.l}</span><span class="bar"><i style="width:${s.pct}%"></i></span><span class="mono">${s.pct}%</span>`;el.appendChild(r)})};
+    ks.forEach(f=>{const s=wl(by[f]);const r=document.createElement("div");r.className="mst";r.style.setProperty("--fc",fcol(f));const mm=el.classList.contains("my")?all.find(m=>m.mmr&&m.mmr[f]):null;r.innerHTML=`<span class="sw"></span><span class="nm">${FAC[f].n}${mm?` <span class="small muted mono" title="MMR frakcji">${mm.mmr[f].to}</span>`:""}</span><span class="mono">${s.w}–${s.l}</span><span class="bar"><i style="width:${s.pct}%"></i></span><span class="mono">${s.pct}%</span>`;el.appendChild(r)})};
   statRows(sp.querySelector(".my"),m=>m.faction);
   statRows(sp.querySelector(".op"),m=>tags[m.id]);
   box.appendChild(sp);
@@ -914,7 +924,7 @@ function renderMatches(){
     const d=dayLabel(m.start);
     if(d!==day){day=d;const ms=list.filter(x=>dayLabel(x.start)===d),s=wl(ms);const h=document.createElement("div");h.className="rolehead";h.innerHTML=`<b></b> <span class="small muted">${s.w}–${s.l}</span>`;h.querySelector("b").textContent=d;lp.appendChild(h);cl=document.createElement("div");cl.className="mlist";lp.appendChild(cl)}
     const r=document.createElement("div");r.className="mrow"+(m.id===m0.id?" sel":"");r.style.setProperty("--fc",fcol(m.faction||"NE"));
-    r.innerHTML=`<span class="mono small muted">${fmtT(m.start)}</span><span class="mres ${m.result}">${m.result==="W"?"W":m.result==="L"?"P":"R"}</span><span class="mwho"><span class="sw"></span><span class="nm"></span></span><span class="small muted mmode">${MODEN[m.mode]||m.mode} · ${mins(m)} min${m.quests&&m.quests.length?" · ✓"+m.quests.length:""}</span><select class="opp" aria-label="Frakcja rywala"></select>`;
+    r.innerHTML=`<span class="mono small muted">${fmtT(m.start)}</span><span class="mres ${m.result}">${m.result==="W"?"W":m.result==="L"?"P":"R"}</span><span class="mwho"><span class="sw"></span><span class="nm"></span></span><span class="small muted mmode">${MODEN[m.mode]||m.mode} · ${mins(m)} min${m.rating?" · "+signed(m.rating.to-m.rating.from)+" pkt":""}${m.quests&&m.quests.length?" · ✓"+m.quests.length:""}</span><select class="opp" aria-label="Frakcja rywala"></select>`;
     r.querySelector(".nm").textContent=(FAC[m.faction]?FAC[m.faction].n:"?")+" vs "+oppNick(m);
     oppSelect(r.querySelector(".opp"),m,tags);
     r.querySelector(".mwho").onclick=()=>{ui.mFocus=m.id;renderMatches();window.scrollTo({top:0,behavior:"smooth"})};
@@ -923,6 +933,40 @@ function renderMatches(){
   if(!list.length)lp.insertAdjacentHTML("beforeend",'<p class="empty">Brak meczów w tym okresie.</p>');
   lp.insertAdjacentHTML("beforeend",'<p class="small muted">Gra nie zapisuje w logu, jakie karty były rzucane w rundach, więc apka pokazuje wynik, czas, tryb, rywala i zadania. Frakcję rywala zaznaczasz sam, wtedy statystyki pokażą, z kim przegrywasz najczęściej.</p>');
   box.appendChild(lp);
+}
+const signed=n=>(n>0?"+":n<0?"−":"±")+Math.abs(n);
+function ratingTxt(m){
+  if(!m.rating)return "";
+  const d=m.rating.to-m.rating.from;
+  const mm=m.mmr&&m.faction&&m.mmr[m.faction];
+  return `<span>Punkty rankingu: <b>${m.rating.from} → ${m.rating.to}</b> (${signed(d)})</span>`+(m.srank&&m.srank.from!==m.srank.to?`<span>Ranga: <b>${m.srank.from} → ${m.srank.to}</b></span>`:m.srank?`<span>Ranga: <b>${m.srank.to}</b></span>`:"")+(mm?`<span>MMR frakcji: <b>${mm.from} → ${mm.to}</b></span>`:"");
+}
+function liveDeck(gold){
+  if(!gold)return {};
+  const id=BYNAME[norm(gold)];const c=id&&CARD[id];if(!c)return {gold};
+  const f=c.f!=="NE"?c.f:"";
+  const ds=DATA.decks.filter(d=>d.cards.some(([x])=>String(x)===String(id))).map(d=>({d,s:deckStats(d)})).sort((a,b)=>b.s.pct-a.s.pct||a.d.t-b.d.t);
+  return {gold,card:c,f,deck:ds.length?ds[0].d:null};
+}
+function liveCard(L,all){
+  const el=document.createElement("div");el.className="panel mlive";
+  const opp=Object.values(L.players||{}).find(x=>x!==(DS&&DS.self))||"";
+  const g=liveDeck(L.gold);el.style.setProperty("--fc",fcol(g.f||"NE"));
+  const vs=opp?all.filter(m=>oppNick(m)===opp):[],vsS=wl(vs);
+  el.innerHTML=`<div class="row" style="justify-content:space-between"><span class="label"><span class="livedot"></span>Mecz trwa · ${MODEN[L.mode]||L.mode||""}</span><span class="mono ltimer" data-start="${L.start}"></span></div>
+    <div class="mbig"><span>vs <b class="nick"></b></span>${g.f?`<span class="fchip">${FAC[g.f].n}</span>`:""}</div>
+    <div class="sumrow">${vs.length?`<span>Z tym graczem: <b>${vsS.w}–${vsS.l}</b> (${vs.length} ${vs.length===1?"mecz":"mecze"})</span>`:opp?"<span>Pierwszy mecz z tym graczem</span>":"<span>Czekam na dane rywala…</span>"}${g.gold?`<span>Złota karta w talii: <b class="gold"></b></span>`:""}</div>
+    <div class="lq small"></div><div class="lplan"></div>`;
+  el.querySelector(".nick").textContent=opp||"…";
+  if(g.gold)el.querySelector(".gold").textContent=g.card?g.card.pl:g.gold;
+  const qs=gameQuests().filter(q=>needLeft(q)&&q.k!=="other"&&(!q.f||!g.f||q.f===g.f));
+  if(qs.length)el.querySelector(".lq").textContent="Zadania do zrobienia w tej grze: "+qs.map(q=>`${qLabel(q)} ${gqDesc(q)} (${q.prog}/${q.n})`).join(" · ");
+  if(g.deck){const d=g.deck,pl=el.querySelector(".lplan");
+    pl.innerHTML=`<details${ui.liveOpen===false?"":" open"}><summary><b>Plan gry: </b><span class="dn"></span></summary><div class="grid2"><div><div class="label">Mulligan</div><p class="note"></p></div><div><div class="label">Rundy</div><p class="note"></p></div></div><ol class="small"></ol></details>`;
+    pl.querySelector(".dn").textContent=d.name+" (najbliższa talia z apki z tą kartą)";const ps=pl.querySelectorAll("p");ps[0].textContent=d.mull;ps[1].textContent=d.rounds;
+    (d.steps||[]).forEach(x=>{const li=document.createElement("li");li.textContent=x;pl.querySelector("ol").appendChild(li)});
+    pl.querySelector("details").ontoggle=e=>{ui.liveOpen=e.target.open}}
+  return el;
 }
 function oppSelect(sel,m,tags){
   sel.innerHTML='<option value="">rywal: ?</option>'+["NG","MO","NR","ST","SK","SY"].map(f=>`<option value="${f}"${tags[m.id]===f?" selected":""}>${FAC[f].n}</option>`).join("");
@@ -941,12 +985,18 @@ if(DESK){
 .sw{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--fc);flex:none}
 .mrow .mmode{grid-column:3;grid-row:2}.mrow .opp{grid-column:4;grid-row:1/3;max-width:9.5em}
 .mst{display:grid;grid-template-columns:auto 1fr auto 70px auto;gap:8px;align-items:center;font-size:.92rem;padding:2px 0}
+.mlive{border:2px solid var(--accent);border-left-width:6px;border-left-color:var(--fc)}
+.livedot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--miss);margin-right:6px;animation:lp 1.2s infinite}
+@keyframes lp{50%{opacity:.25}}.mlive details summary{cursor:pointer;margin:6px 0}.mlive ol{margin:6px 0 0;padding-left:1.2em}
 .mst .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.mst .bar i{display:block;height:100%;background:var(--fc)}
 @media(max-width:520px){.mrow{grid-template-columns:auto auto 1fr}.mrow .opp{grid-column:1/-1;grid-row:auto;max-width:none}}`;
   document.head.appendChild(css);
   document.documentElement.classList.add("desktop");
   const refresh=()=>{gqCache=null;if(["zadania","mecze","kolekcja"].includes(ui.view))render();else renderDeskSync()};
-  DESK.on("state",s=>{DS=s;refresh()});
+  let liveStart=null;
+  const onState=s=>{const ls=s.live&&s.live.start;DS=s;gqCache=null;if(ls&&ls!==liveStart){liveStart=ls;if(ui.view!=="mecze"){go("mecze");return}}liveStart=ls||null;refresh()};
+  DESK.on("state",onState);
+  setInterval(()=>{const t=document.querySelector(".ltimer");if(!t)return;const s=Math.max(0,Math.floor((Date.now()-+t.dataset.start)/1000));t.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0")},1000);
   DESK.on("collection",ids=>{
     const cnt={};ids.forEach(x=>{x=String(x);cnt[x]=(cnt[x]||0)+1});
     const before=owned;const next={};let added=0;
@@ -960,7 +1010,7 @@ if(DESK){
     manualSync=false;
   });
   DESK.on("show",d=>{if(d&&d.id)ui.mFocus=d.id;go((d&&d.view)||"mecze")});
-  DESK.getState().then(s=>{DS=s;refresh()}).catch(()=>{});
+  DESK.getState().then(onState).catch(()=>{});
   $("#emptyBtn").onclick=()=>{go("kolekcja");DESK.login()};
 }
 

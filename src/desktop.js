@@ -125,10 +125,12 @@ function renderMatches(){
   }
   const all=(DS&&DS.matches)||[];
   const tags=(DS&&DS.oppTags)||{};
-  if(!all.length){box.innerHTML=`<div class="panel"><h2>Mecze</h2><p class="empty">${DS&&DS.logFound?"Jeszcze nie ma meczów. Zagraj w Gwinta, a wynik pojawi się tu sam.":"Nie widzę logu gry. Uruchom Gwinta na tym komputerze."}</p></div>`;return}
+  if(!all.length&&!DS.live){box.innerHTML=`<div class="panel"><h2>Mecze</h2><p class="empty">${DS&&DS.logFound?"Jeszcze nie ma meczów. Zagraj w Gwinta, a wynik pojawi się tu sam.":"Nie widzę logu gry. Uruchom Gwinta na tym komputerze."}</p></div>`;return}
+  if(DS.live)box.appendChild(liveCard(DS.live,all));
   ui.mper=ui.mper||"7";
   const cut=ui.mper==="all"?0:ui.mper==="1"?new Date().setHours(0,0,0,0):Date.now()-7*864e5;
   const list=all.filter(m=>m.start>=cut);
+  if(!all.length)return;
   // ostatni mecz
   const m0=all.find(m=>m.id===ui.mFocus)||all[0];
   const last=document.createElement("div");last.className="panel mlast "+(m0.result||"");
@@ -136,7 +138,7 @@ function renderMatches(){
   const vs=all.filter(m=>oppNick(m)===oppNick(m0)),vsS=wl(vs);
   last.innerHTML=`<div class="row" style="justify-content:space-between"><span class="label">${m0===all[0]?"Ostatni mecz":"Mecz"} · ${dayLabel(m0.start)} ${fmtT(m0.start)}</span><span class="small muted">${MODEN[m0.mode]||m0.mode}</span></div>
     <div class="mbig"><span class="mres ${m0.result}">${RESN[m0.result]||"?"}</span><span class="fchip">${FAC[m0.faction]?FAC[m0.faction].n:"?"}</span><span>vs <b class="nick"></b></span></div>
-    <div class="sumrow"><span>Czas: <b>${mins(m0)} min</b></span>${m0.xp?`<span>Doświadczenie: <b>+${m0.xp}</b></span>`:""}${m0.rank?`<span>Ranking: <b>${m0.rank.pieces}/${m0.rank.max}</b> (poziom ${m0.rank.tier})</span>`:""}${vs.length>1?`<span>Z tym graczem: <b>${vsS.w}–${vsS.l}</b></span>`:""}</div>
+    <div class="sumrow"><span>Czas: <b>${mins(m0)} min</b></span>${m0.xp?`<span>Doświadczenie: <b>+${m0.xp}</b></span>`:""}${ratingTxt(m0)}${m0.rank&&!m0.rating?`<span>Ranking: <b>${m0.rank.pieces}/${m0.rank.max}</b> (poziom ${m0.rank.tier})</span>`:""}${vs.length>1?`<span>Z tym graczem: <b>${vsS.w}–${vsS.l}</b></span>`:""}</div>
     <div class="small qline"></div>
     <label class="small">Frakcja rywala: <select class="opp"></select></label>`;
   last.querySelector(".nick").textContent=oppNick(m0);
@@ -147,13 +149,13 @@ function renderMatches(){
   const sp=document.createElement("div");sp.className="panel";
   const S=wl(list);
   sp.innerHTML=`<div class="row" style="justify-content:space-between"><h2>Statystyki</h2><div class="filters per"></div></div>
-    <div class="sumrow"><span>Mecze: <b>${S.n}</b></span><span>Bilans: <b>${S.w}–${S.l}</b></span><span>Wygrane: <b>${S.pct}%</b></span></div>
+    <div class="sumrow"><span>Mecze: <b>${S.n}</b></span><span>Bilans: <b>${S.w}–${S.l}</b></span><span>Wygrane: <b>${S.pct}%</b></span>${(()=>{const r=all.find(m=>m.rating);return r?`<span>Punkty rankingu: <b>${r.rating.to}</b>${r.srank?` · ranga <b>${r.srank.to}</b>`:""}</span>`:""})()}</div>
     <div class="grid2"><div><div class="label">Moje frakcje</div><div class="mstat my"></div></div><div><div class="label">Frakcje rywali</div><div class="mstat op"></div></div></div>`;
   [["1","Dziś"],["7","7 dni"],["all","Wszystko"]].forEach(([k,l])=>{const b=document.createElement("button");b.className="fbtn";b.textContent=l;b.setAttribute("aria-pressed",ui.mper===k);b.onclick=()=>{ui.mper=k;renderMatches()};sp.querySelector(".per").appendChild(b)});
   const statRows=(el,key)=>{const by={};list.forEach(m=>{const f=key(m);if(f)(by[f]=by[f]||[]).push(m)});
     const ks=Object.keys(by).sort((a,b)=>by[b].length-by[a].length);
     if(!ks.length){el.innerHTML='<p class="small muted">'+(el.classList.contains("op")?"Zaznacz frakcję rywala przy meczach, a pojawi się tu bilans.":"Brak danych.")+"</p>";return}
-    ks.forEach(f=>{const s=wl(by[f]);const r=document.createElement("div");r.className="mst";r.style.setProperty("--fc",fcol(f));r.innerHTML=`<span class="sw"></span><span class="nm">${FAC[f].n}</span><span class="mono">${s.w}–${s.l}</span><span class="bar"><i style="width:${s.pct}%"></i></span><span class="mono">${s.pct}%</span>`;el.appendChild(r)})};
+    ks.forEach(f=>{const s=wl(by[f]);const r=document.createElement("div");r.className="mst";r.style.setProperty("--fc",fcol(f));const mm=el.classList.contains("my")?all.find(m=>m.mmr&&m.mmr[f]):null;r.innerHTML=`<span class="sw"></span><span class="nm">${FAC[f].n}${mm?` <span class="small muted mono" title="MMR frakcji">${mm.mmr[f].to}</span>`:""}</span><span class="mono">${s.w}–${s.l}</span><span class="bar"><i style="width:${s.pct}%"></i></span><span class="mono">${s.pct}%</span>`;el.appendChild(r)})};
   statRows(sp.querySelector(".my"),m=>m.faction);
   statRows(sp.querySelector(".op"),m=>tags[m.id]);
   box.appendChild(sp);
@@ -164,7 +166,7 @@ function renderMatches(){
     const d=dayLabel(m.start);
     if(d!==day){day=d;const ms=list.filter(x=>dayLabel(x.start)===d),s=wl(ms);const h=document.createElement("div");h.className="rolehead";h.innerHTML=`<b></b> <span class="small muted">${s.w}–${s.l}</span>`;h.querySelector("b").textContent=d;lp.appendChild(h);cl=document.createElement("div");cl.className="mlist";lp.appendChild(cl)}
     const r=document.createElement("div");r.className="mrow"+(m.id===m0.id?" sel":"");r.style.setProperty("--fc",fcol(m.faction||"NE"));
-    r.innerHTML=`<span class="mono small muted">${fmtT(m.start)}</span><span class="mres ${m.result}">${m.result==="W"?"W":m.result==="L"?"P":"R"}</span><span class="mwho"><span class="sw"></span><span class="nm"></span></span><span class="small muted mmode">${MODEN[m.mode]||m.mode} · ${mins(m)} min${m.quests&&m.quests.length?" · ✓"+m.quests.length:""}</span><select class="opp" aria-label="Frakcja rywala"></select>`;
+    r.innerHTML=`<span class="mono small muted">${fmtT(m.start)}</span><span class="mres ${m.result}">${m.result==="W"?"W":m.result==="L"?"P":"R"}</span><span class="mwho"><span class="sw"></span><span class="nm"></span></span><span class="small muted mmode">${MODEN[m.mode]||m.mode} · ${mins(m)} min${m.rating?" · "+signed(m.rating.to-m.rating.from)+" pkt":""}${m.quests&&m.quests.length?" · ✓"+m.quests.length:""}</span><select class="opp" aria-label="Frakcja rywala"></select>`;
     r.querySelector(".nm").textContent=(FAC[m.faction]?FAC[m.faction].n:"?")+" vs "+oppNick(m);
     oppSelect(r.querySelector(".opp"),m,tags);
     r.querySelector(".mwho").onclick=()=>{ui.mFocus=m.id;renderMatches();window.scrollTo({top:0,behavior:"smooth"})};
@@ -173,6 +175,40 @@ function renderMatches(){
   if(!list.length)lp.insertAdjacentHTML("beforeend",'<p class="empty">Brak meczów w tym okresie.</p>');
   lp.insertAdjacentHTML("beforeend",'<p class="small muted">Gra nie zapisuje w logu, jakie karty były rzucane w rundach, więc apka pokazuje wynik, czas, tryb, rywala i zadania. Frakcję rywala zaznaczasz sam, wtedy statystyki pokażą, z kim przegrywasz najczęściej.</p>');
   box.appendChild(lp);
+}
+const signed=n=>(n>0?"+":n<0?"−":"±")+Math.abs(n);
+function ratingTxt(m){
+  if(!m.rating)return "";
+  const d=m.rating.to-m.rating.from;
+  const mm=m.mmr&&m.faction&&m.mmr[m.faction];
+  return `<span>Punkty rankingu: <b>${m.rating.from} → ${m.rating.to}</b> (${signed(d)})</span>`+(m.srank&&m.srank.from!==m.srank.to?`<span>Ranga: <b>${m.srank.from} → ${m.srank.to}</b></span>`:m.srank?`<span>Ranga: <b>${m.srank.to}</b></span>`:"")+(mm?`<span>MMR frakcji: <b>${mm.from} → ${mm.to}</b></span>`:"");
+}
+function liveDeck(gold){
+  if(!gold)return {};
+  const id=BYNAME[norm(gold)];const c=id&&CARD[id];if(!c)return {gold};
+  const f=c.f!=="NE"?c.f:"";
+  const ds=DATA.decks.filter(d=>d.cards.some(([x])=>String(x)===String(id))).map(d=>({d,s:deckStats(d)})).sort((a,b)=>b.s.pct-a.s.pct||a.d.t-b.d.t);
+  return {gold,card:c,f,deck:ds.length?ds[0].d:null};
+}
+function liveCard(L,all){
+  const el=document.createElement("div");el.className="panel mlive";
+  const opp=Object.values(L.players||{}).find(x=>x!==(DS&&DS.self))||"";
+  const g=liveDeck(L.gold);el.style.setProperty("--fc",fcol(g.f||"NE"));
+  const vs=opp?all.filter(m=>oppNick(m)===opp):[],vsS=wl(vs);
+  el.innerHTML=`<div class="row" style="justify-content:space-between"><span class="label"><span class="livedot"></span>Mecz trwa · ${MODEN[L.mode]||L.mode||""}</span><span class="mono ltimer" data-start="${L.start}"></span></div>
+    <div class="mbig"><span>vs <b class="nick"></b></span>${g.f?`<span class="fchip">${FAC[g.f].n}</span>`:""}</div>
+    <div class="sumrow">${vs.length?`<span>Z tym graczem: <b>${vsS.w}–${vsS.l}</b> (${vs.length} ${vs.length===1?"mecz":"mecze"})</span>`:opp?"<span>Pierwszy mecz z tym graczem</span>":"<span>Czekam na dane rywala…</span>"}${g.gold?`<span>Złota karta w talii: <b class="gold"></b></span>`:""}</div>
+    <div class="lq small"></div><div class="lplan"></div>`;
+  el.querySelector(".nick").textContent=opp||"…";
+  if(g.gold)el.querySelector(".gold").textContent=g.card?g.card.pl:g.gold;
+  const qs=gameQuests().filter(q=>needLeft(q)&&q.k!=="other"&&(!q.f||!g.f||q.f===g.f));
+  if(qs.length)el.querySelector(".lq").textContent="Zadania do zrobienia w tej grze: "+qs.map(q=>`${qLabel(q)} ${gqDesc(q)} (${q.prog}/${q.n})`).join(" · ");
+  if(g.deck){const d=g.deck,pl=el.querySelector(".lplan");
+    pl.innerHTML=`<details${ui.liveOpen===false?"":" open"}><summary><b>Plan gry: </b><span class="dn"></span></summary><div class="grid2"><div><div class="label">Mulligan</div><p class="note"></p></div><div><div class="label">Rundy</div><p class="note"></p></div></div><ol class="small"></ol></details>`;
+    pl.querySelector(".dn").textContent=d.name+" (najbliższa talia z apki z tą kartą)";const ps=pl.querySelectorAll("p");ps[0].textContent=d.mull;ps[1].textContent=d.rounds;
+    (d.steps||[]).forEach(x=>{const li=document.createElement("li");li.textContent=x;pl.querySelector("ol").appendChild(li)});
+    pl.querySelector("details").ontoggle=e=>{ui.liveOpen=e.target.open}}
+  return el;
 }
 function oppSelect(sel,m,tags){
   sel.innerHTML='<option value="">rywal: ?</option>'+["NG","MO","NR","ST","SK","SY"].map(f=>`<option value="${f}"${tags[m.id]===f?" selected":""}>${FAC[f].n}</option>`).join("");
@@ -191,12 +227,18 @@ if(DESK){
 .sw{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--fc);flex:none}
 .mrow .mmode{grid-column:3;grid-row:2}.mrow .opp{grid-column:4;grid-row:1/3;max-width:9.5em}
 .mst{display:grid;grid-template-columns:auto 1fr auto 70px auto;gap:8px;align-items:center;font-size:.92rem;padding:2px 0}
+.mlive{border:2px solid var(--accent);border-left-width:6px;border-left-color:var(--fc)}
+.livedot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--miss);margin-right:6px;animation:lp 1.2s infinite}
+@keyframes lp{50%{opacity:.25}}.mlive details summary{cursor:pointer;margin:6px 0}.mlive ol{margin:6px 0 0;padding-left:1.2em}
 .mst .bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden}.mst .bar i{display:block;height:100%;background:var(--fc)}
 @media(max-width:520px){.mrow{grid-template-columns:auto auto 1fr}.mrow .opp{grid-column:1/-1;grid-row:auto;max-width:none}}`;
   document.head.appendChild(css);
   document.documentElement.classList.add("desktop");
   const refresh=()=>{gqCache=null;if(["zadania","mecze","kolekcja"].includes(ui.view))render();else renderDeskSync()};
-  DESK.on("state",s=>{DS=s;refresh()});
+  let liveStart=null;
+  const onState=s=>{const ls=s.live&&s.live.start;DS=s;gqCache=null;if(ls&&ls!==liveStart){liveStart=ls;if(ui.view!=="mecze"){go("mecze");return}}liveStart=ls||null;refresh()};
+  DESK.on("state",onState);
+  setInterval(()=>{const t=document.querySelector(".ltimer");if(!t)return;const s=Math.max(0,Math.floor((Date.now()-+t.dataset.start)/1000));t.textContent=Math.floor(s/60)+":"+String(s%60).padStart(2,"0")},1000);
   DESK.on("collection",ids=>{
     const cnt={};ids.forEach(x=>{x=String(x);cnt[x]=(cnt[x]||0)+1});
     const before=owned;const next={};let added=0;
@@ -210,6 +252,6 @@ if(DESK){
     manualSync=false;
   });
   DESK.on("show",d=>{if(d&&d.id)ui.mFocus=d.id;go((d&&d.view)||"mecze")});
-  DESK.getState().then(s=>{DS=s;refresh()}).catch(()=>{});
+  DESK.getState().then(onState).catch(()=>{});
   $("#emptyBtn").onclick=()=>{go("kolekcja");DESK.login()};
 }

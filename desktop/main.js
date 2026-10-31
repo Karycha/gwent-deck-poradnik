@@ -3,7 +3,7 @@
 // - pokazuje apkę z GitHub Pages (aktualizuje się sama),
 // - czyta log klienta Gwinta (tylko odczyt pliku) i zapisuje mecze oraz zadania,
 // - synchronizuje kolekcję z playgwent.com po zalogowaniu w oknie GOG.
-const { app, BrowserWindow, ipcMain, Notification, shell, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, shell, Menu, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -58,13 +58,19 @@ const appStart = Date.now();
 function onMatch(m) {
   if (!m.id) return;
   const isNew = !store.matches[m.id] || !store.matches[m.id].result;
-  store.matches[m.id] = { id: m.id, start: m.start, end: m.end, mode: m.mode, players: m.players, faction: m.faction, result: m.result, xp: m.xp, level: m.level, rank: m.rank, quests: m.quests || [] };
+  store.matches[m.id] = { id: m.id, start: m.start, end: m.end, mode: m.mode, players: m.players, faction: m.faction, result: m.result, xp: m.xp, level: m.level, rank: m.rank, quests: m.quests || [], rating: m.rating, srank: m.srank, mmr: m.mmr, gold: m.gold };
   save();
   if (!initialScan && isNew && m.end > appStart && m.result) {
     notifyMatch(store.matches[m.id]);
     setTimeout(() => syncCollection(false), 20000);   // nowe karty po meczu
   }
   pushState();
+}
+let live = null;
+function onLive(d) {
+  if (d.phase === 'end') { live = null; }
+  else { live = Object.assign({}, live && live.start === d.start ? live : {}, d); }
+  if (!initialScan) pushState();
 }
 function oppOf(m) { const n = Object.values(m.players || {}); return n.find(x => x !== store.self) || n[0] || '?'; }
 function notifyMatch(m) {
@@ -90,6 +96,7 @@ function scanLogs() {
         quest: q => { upsertQuest(q, false); save(); pushState(); },
         activeQuest: q => { upsertQuest(q, true); save(); },
         self: n => { if (store.self !== n) { store.self = n; save(); } },
+        live: onLive,
       }) };
     }
     if (size < st.offset) st.offset = 0;
@@ -101,6 +108,7 @@ function scanLogs() {
       } catch (e) {}
     }
   }
+  if (live && Date.now() - live.start > 45 * 60000) { live = null; pushState(); }
   if (initialScan) { initialScan = false; pushState(); }
 }
 
@@ -136,7 +144,7 @@ function syncCollection(show) {
 function statePayload() {
   return { version: app.getVersion(), self: store.self, logFound: !!store.logFound, logDir: LOG_DIR,
     matches: Object.values(store.matches).filter(m => m.result).sort((a, b) => b.start - a.start).slice(0, 500),
-    oppTags: store.oppTags, quests: currentQuests(), lastSync: store.lastSync, syncCount: store.syncCount, syncStatus: store.syncStatus };
+    oppTags: store.oppTags, quests: currentQuests(), live, lastSync: store.lastSync, syncCount: store.syncCount, syncStatus: store.syncStatus };
 }
 let pushT = null;
 function pushState() { clearTimeout(pushT); pushT = setTimeout(() => { if (win && !win.isDestroyed()) win.webContents.send('state', statePayload()); }, 150); }
@@ -166,6 +174,7 @@ ipcMain.on('logout', async () => {
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
+  nativeTheme.themeSource = 'dark';
   app.setAppUserModelId('pl.karys.warsztatgwinta');
   loadStore();
   createWindow();

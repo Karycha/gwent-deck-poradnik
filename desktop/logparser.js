@@ -12,7 +12,7 @@ class GwentLogParser {
     this.base = fileDate(fileName);
     this.day = 0; this.lastSec = -1;
     this.sink = sink;            // {match(m), quest(q), activeQuest(q), self(nick)}
-    this.mode = null; this.cur = null; this.lastEnded = null; this.partial = '';
+    this.mode = null; this.cur = null; this.lastEnded = null; this.partial = ''; this.extras = {};
   }
   ts(h, mi, s, ms) {
     const sec = h * 3600 + mi * 60 + s;
@@ -26,6 +26,8 @@ class GwentLogParser {
     this.partial = lines.pop();
     for (const l of lines) this.line(l.replace(/^﻿/, ''));
   }
+  live(d) { if (this.sink.live) this.sink.live(d); }
+  mergeExtras(m) { const ex = m.id && this.extras[m.id]; if (ex) Object.assign(m, ex); }
   line(l) {
     const m = l.match(LINE);
     if (!m) {
@@ -40,22 +42,32 @@ class GwentLogParser {
     if ((x = msg.match(/"player_name":"([^"]+)"/))) this.sink.self && this.sink.self(x[1]);
     if ((x = msg.match(/\[RedLog\] Searching a (\S+) match/))) { this.mode = x[1]; return; }
     if (msg.includes('[BattleHandler] Game Initialized')) {
-      this.cur = { start: t, mode: normMode(this.mode), players: {}, quests: [] }; this.mode = null; return;
+      this.cur = { start: t, mode: normMode(this.mode), players: {}, quests: [] }; this.mode = null;
+      this.live({ phase: 'start', start: t, mode: this.cur.mode, players: {} }); return;
     }
-    if (this.cur && (x = msg.match(/\[PlayerInfoFetcher\]\[(P[12])\] Player info obtained ([^,]+),/))) { this.cur.players[x[1]] = x[2].trim(); return; }
+    if (this.cur && (x = msg.match(/\[PlayerInfoFetcher\]\[(P[12])\] Player info obtained ([^,]+),/))) { this.cur.players[x[1]] = x[2].trim(); this.live({ phase: 'players', start: this.cur.start, mode: this.cur.mode, players: this.cur.players, gold: this.cur.gold }); return; }
+    if (this.cur && (x = msg.match(/\[CommonDenominatorAchievement\]Gold found: (.+)$/))) { this.cur.gold = x[1].trim(); this.live({ phase: 'gold', start: this.cur.start, mode: this.cur.mode, players: this.cur.players, gold: this.cur.gold }); return; }
     if ((x = msg.match(/End Game Data Received\. ProcessingEndGameData id: (\d+)/))) {
-      if (this.cur) { this.cur.id = x[1]; this.cur.end = t; } return;
+      if (this.cur) { this.cur.id = x[1]; this.cur.end = t; this.mergeExtras(this.cur); } return;
     }
     if (this.cur && (x = msg.match(/\[MatchOutcome\] \[OUTCOME\] current: pieces: (\d+) tier: (\d+) max: (\d+)/))) {
       this.cur.rank = { pieces: +x[1], tier: +x[2], max: +x[3] }; return;
     }
     if ((x = msg.match(/GogNoti: (\{.*\})/))) {
       let j; try { j = JSON.parse(x[1]); } catch (e) { return; }
+      const gid = j.context && j.context.game_id ? String(j.context.game_id) : null;
       const target = this.cur || (this.lastEnded && t - this.lastEnded.end < 60000 ? this.lastEnded : null);
-      if (j.type === 'profile_progress' && target && j.payload && j.payload.experience_change) {
-        target.xp = j.payload.experience_change.details ? j.payload.experience_change.details.total : null;
-        target.level = j.payload.level_change ? j.payload.level_change.to : null;
-        if (target === this.lastEnded) this.sink.match(target);
+      if (gid && j.payload && (j.type === 'profile_progress' || j.type === 'season_progress')) {
+        const ex = this.extras[gid] = this.extras[gid] || {};
+        const p = j.payload;
+        if (j.type === 'profile_progress' && p.experience_change) { ex.xp = p.experience_change.details ? p.experience_change.details.total : null; ex.level = p.level_change ? p.level_change.to : null; }
+        if (j.type === 'season_progress') {
+          if (p.rating_change && p.rating_change.from && p.rating_change.to) ex.rating = { from: p.rating_change.from.score, to: p.rating_change.to.score };
+          if (p.rank_change) ex.srank = { from: p.rank_change.from, to: p.rank_change.to };
+          if (Array.isArray(p.faction_progressions)) { ex.mmr = {}; for (const fp of p.faction_progressions) { const f = normFaction(fp.faction); const c = fp.faction_progression_change; if (f && c && c.from && c.to) ex.mmr[f] = { from: c.from.real_score, to: c.to.real_score, games: c.to.games_count }; } }
+        }
+        const m = [this.cur, this.lastEnded].find(z => z && z.id === gid);
+        if (m) { this.mergeExtras(m); if (m === this.lastEnded) this.sink.match(m); }
       }
       if (j.type === 'quest_updated' && j.payload && j.payload.user_quest) {
         const q = questFromNoti(j.payload.user_quest, t);
@@ -68,7 +80,8 @@ class GwentLogParser {
       c.faction = normFaction(x[1]); c.result = x[2] === 'Win' ? 'W' : x[2] === 'Lose' ? 'L' : 'D';
       if (!c.end) c.end = t;
       if (!c.id) c.id = 't' + c.start;
-      this.sink.match(c); this.lastEnded = c; this.cur = null; return;
+      this.mergeExtras(c);
+      this.sink.match(c); this.lastEnded = c; this.cur = null; this.live({ phase: 'end', start: c.start, id: c.id }); return;
     }
     if ((x = msg.match(/\[QuestManager\] Add quest Quest (\d+): objective: (\w+) (\d+)\/(\d+)(?: faction: (\w+))?; UserQuest (\w+) id: (\d+), (\w+)/))) {
       this.pendingQuest = { id: x[1], type: x[2], cur: +x[3], value: +x[4], faction: x[5] ? normFaction(x[5]) : '', kind: x[6], defId: x[7], state: x[8], modified: t };
